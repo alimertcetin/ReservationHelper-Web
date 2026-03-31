@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservation Pro</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="./output.css">
+    <script defer src="./app.js"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen overflow-hidden transition-colors duration-300">
+
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm"></div>
+
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-900 z-50 transition-transform duration-300 -translate-x-full border-r border-slate-200 dark:border-slate-800 shadow-2xl">
+        <div class="p-4 flex flex-col h-full">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-teal-600">Menu</h2>
+                <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">✕</button>
+            </div>
+            <nav class="space-y-1">
+                <button class="nav-link active w-full flex items-center gap-3 p-2 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-600"><span>🏨</span> New Reservation</button>
+                <button class="nav-link w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><span>🛏️</span> Rooms</button>
+                <button class="nav-link w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><span>👤</span> Guests</button>
+                <button class="nav-link w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><span>⚙️</span> Settings</button>
+            </nav>
+        </div>
+    </aside>
+
+    <nav class="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-2">
+        <div class="max-w-[1600px] mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">☰</button>
+                <h1 class="text-base font-bold">Reservation<span class="text-teal-500">Helper</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleDark()" class="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-full hover:scale-105 transition-transform">
+                    <span class="dark:hidden text-sm">🌙</span><span class="hidden dark:inline text-sm">☀️</span>
+                </button>
+                <div class="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-xs font-bold">A</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto p-4 h-[calc(100vh-60px)] grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-hidden">
+        
+        <div class="lg:col-span-8 bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-lg flex flex-col overflow-y-auto lg:overflow-hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">New Booking</h2>
+                <span class="px-3 py-0.5 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full text-[10px] font-bold uppercase">Quick Entry</span>
+            </div>
+
+            <form class="space-y-4 flex-1">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold opacity-70 ml-1 uppercase">Room Type</label>
+                        <select id="roomType" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-teal-500 outline-none">
+                            <option>Standard Room</option>
+                            <option>Deluxe Suite</option>
+                            <option>Family Room</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold opacity-70 ml-1 uppercase">Date Range</label>
+                        <input id="dateRange" type="text" placeholder="Select dates..." class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-teal-500 outline-none">
+                    </div>
+                    <div class="relative space-y-1">
+                        <label class="text-[11px] font-bold opacity-70 ml-1 uppercase">Guests</label>
+                        <div onclick="toggleGuestDropdown(event)" class="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 text-sm cursor-pointer flex justify-between items-center">
+                            <span id="guestSummary" class="truncate">2 Adults, 0 Children</span>
+                            <span class="text-[10px]">▼</span>
+                        </div>
+                        <div id="guestDropdown" class="hidden absolute top-full left-0 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mt-1 p-3 rounded-xl shadow-xl z-20 space-y-3">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold">Adults</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="changeGuest('adult',-1)" class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-teal-500">-</button>
+                                    <span id="adultCount" class="w-4 text-center">2</span>
+                                    <button type="button" onclick="changeGuest('adult',1)" class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-teal-500">+</button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold">Children</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="changeGuest('child',-1)" class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-teal-500">-</button>
+                                    <span id="childCount" class="w-4 text-center">0</span>
+                                    <button type="button" onclick="changeGuest('child',1)" class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-teal-500">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold opacity-70 ml-1 uppercase">First Name</label>
+                        <input id="guestName" placeholder="John" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-teal-500 outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold opacity-70 ml-1 uppercase">Last Name</label>
+                        <input id="guestSurname" placeholder="Doe" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-teal-500 outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold opacity-70 ml-1 uppercase">Phone</label>
+                        <input id="guestPhone" placeholder="5xx..." class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-teal-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl grid grid-cols-3 gap-4">
+                    <div class="text-center md:text-left">
+                        <label class="text-[10px] uppercase font-bold opacity-50 block mb-1">Total</label>
+                        <input id="totalPayment" oninput="updateMoney()" placeholder="₺0" class="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 text-lg font-mono outline-none focus:border-teal-500">
+                    </div>
+                    <div class="text-center md:text-left">
+                        <label class="text-[10px] uppercase font-bold opacity-50 block mb-1">Received</label>
+                        <input id="receivedPayment" oninput="updateMoney()" placeholder="₺0" class="w-full bg-transparent border-b border-slate-200 dark:border-slate-700 text-lg font-mono text-emerald-500 outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="text-center md:text-left">
+                        <label class="text-[10px] uppercase font-bold opacity-50 block mb-1">Balance</label>
+                        <input id="remainingPayment" readonly placeholder="₺0" class="w-full bg-transparent text-lg font-mono text-rose-500 outline-none cursor-default">
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="saveReservation()" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-xl shadow-md transition-all active:scale-[0.98]">
+                        Confirm Booking
+                    </button>
+                    <button type="button" onclick="sendWhatsApp()" class="px-4 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors">
+                        💬
+                    </button>
+                    <button type="button" onclick="copyGuest()" class="px-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 transition-colors">
+                        📋
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="lg:col-span-4 bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-lg flex flex-col overflow-hidden h-full">
+            <h3 class="font-bold mb-3 flex items-center justify-between">
+                <span>Recent Bookings</span>
+                <span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Last 24h</span>
+            </h3>
+            <div id="recentReservations" class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-transparent hover:border-teal-500/30 transition-all cursor-pointer">
+                    <div class="flex justify-between items-start">
+                        <p class="font-bold text-sm text-teal-600">Mert Demir</p>
+                        <span class="text-[10px] opacity-50">12:45</span>
+                    </div>
+                    <p class="text-[11px] opacity-70">Family Suite • 2+1 Guests</p>
+                    <p class="text-xs mt-1 font-mono font-bold">₺4.500,00</p>
+                </div>
+                </div>
+        </div>
+
+    </main>
+
+    <style>
+        /* Compact görünüm için özel scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 10px; 
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+        
+        /* Input focus animasyonu */
+        input:focus { transform: translateY(-1px); }
+    </style>
+
+</body>
+</html>

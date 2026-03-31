@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* v4 Dark Mode Konfigürasyonu */
+@variant dark (&:where(.dark, .dark *));
+
+@layer components {
+  .modern-input {
+    @apply w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none transition-all focus:ring-2 focus:ring-teal-500 text-slate-900 dark:text-white;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 p-3 rounded-xl transition-all text-slate-600 dark:text-slate-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:text-teal-600;
+  }
+
+  .nav-link.active {
+    @apply bg-teal-500 text-white shadow-lg shadow-teal-200 dark:shadow-none;
+  }
+
+  .action-btn {
+    @apply px-5 py-3 rounded-xl font-semibold transition-all active:scale-95 flex items-center gap-2;
+  }
+
+  .recent-card {
+    @apply p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-teal-500 transition-all cursor-pointer shadow-sm;
+  }
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-200 dark:bg-slate-700 rounded-full; }
