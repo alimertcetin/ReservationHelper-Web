@@ -1,175 +1,126 @@
-// ======= ELEMENTS =======
-const guestDropdown = document.getElementById("guestDropdown");
-const guestSummary = document.getElementById("guestSummary");
-const adultCountText = document.getElementById("adultCount");
-const childCountText = document.getElementById("childCount");
+const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = Vue;
 
-const totalPaymentInput = document.getElementById("totalPayment");
-const receivedPaymentInput = document.getElementById("receivedPayment");
-const remainingPaymentInput = document.getElementById("remainingPayment");
+createApp({
+    setup() {
+        // UI Control
+        const isDark = ref(localStorage.getItem('theme') === 'dark');
+        const currentPage = ref('bookings');
+        const sidebarOpen = ref(false);
+        const guestDropdown = ref(false);
+        const loading = ref(true);
 
-const guestNameInput = document.getElementById("guestName");
-const guestSurnameInput = document.getElementById("guestSurname");
-const guestPhoneInput = document.getElementById("guestPhone");
+        // Configuration
+        const roomTypes = ['Standard Room', 'Deluxe Suite', 'Family Room', 'King Suite'];
+        const menu = ref([
+            { id: 'bookings', label: 'New Booking', icon: '🏨', enabled: true },
+            { id: 'rooms', label: 'Room List', icon: '🛏️', enabled: true },
+            { id: 'accounts', label: 'Bank Info', icon: '💳', enabled: true },
+            { id: 'settings', label: 'Settings', icon: '⚙️', enabled: true }
+        ]);
 
-// Global Durumlar
-let adults = 2;
-let children = 0;
-
-// ======= INITIALIZATION =======
-document.addEventListener("DOMContentLoaded", () => {
-    initTheme();
-    initFlatpickr();
-    updateMoney(); // Başlangıçta 0 değerlerini formatla
-});
-
-function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
-}
-
-function initFlatpickr() {
-    // Kütüphane yüklenmiş mi kontrol et
-    if (typeof flatpickr !== 'undefined') {
-        flatpickr("#dateRange", {
-            mode: "range",
-            minDate: "today",
-            dateFormat: "d-m-Y",
-            // locale: "tr" // Eğer hata verirse şimdilik yorumda kalsın
+        // Form State (Persistent across navigation)
+        const form = reactive({
+            roomType: 'Standard Room',
+            dates: '',
+            name: '',
+            surname: '',
+            phone: '',
+            adults: 2,
+            children: 0,
+            total: null,
+            received: null
         });
-    } else {
-        console.error("Flatpickr kütüphanesi yüklenemedi!");
+
+        const initDatePicker = () => {
+            // nextTick ensures Vue has finished rendering the HTML 
+            // after the page switch before we look for #datePicker
+            nextTick(() => {
+                const el = document.querySelector("#datePicker");
+                if (el) {
+                    flatpickr(el, {
+                        mode: "range",
+                        dateFormat: "d-m-Y",
+                        defaultDate: form.dates ? form.dates.split(' to ') : null,
+                        onChange: (selectedDates, dateStr) => { 
+                            form.dates = dateStr; 
+                        }
+                    });
+                }
+            })
+        };
+
+        watch(currentPage, (newPage) => {
+            if (newPage === 'bookings') {
+                initDatePicker();
+            }
+        });
+
+        const recent = ref([]);
+
+        // Computed
+        const balance = computed(() => (form.total || 0) - (form.received || 0));
+
+        // Methods
+        const toggleDark = () => {
+            isDark.value = !isDark.value;
+        };
+
+        const changeGuest = (type, delta) => {
+            if (type === 'adults') form.adults = Math.max(1, form.adults + delta);
+            else form.children = Math.max(0, form.children + delta);
+        };
+
+        const formatCurrency = (val) => {
+            return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0);
+        };
+
+        const saveReservation = () => {
+            if(!form.name || !form.dates) return alert("Please fill at least Name and Dates.");
+            alert("Reservation Saved Successfully!");
+        };
+
+        const sendWhatsApp = () => {
+            const cleanPhone = form.phone.replace(/\D/g, '');
+            const message = `Booking for ${form.name} ${form.surname} on ${form.dates}`;
+            window.open(`https://wa.me/90${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        };
+
+        const copyGuest = () => {
+            navigator.clipboard.writeText(`${form.name} ${form.surname} - ${form.phone}`);
+            alert("Guest info copied!");
+        };
+
+        // Theme Watcher (The bridge between Vue and your V4 Tailwind)
+        watch(isDark, (val) => {
+            if (val) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        }, { immediate: true });
+
+        onMounted(() => {
+            // Initial load
+            if (currentPage.value === 'bookings') {
+                initDatePicker();
+            }
+
+            // Simulate Data Fetch
+            setTimeout(() => {
+                recent.value = [
+                    { id: 1, name: 'Mert', surname: 'Demir', time: 'Just now', room: 'King Suite', guests: '2+1', total: '₺12.400' },
+                    { id: 2, name: 'Selin', surname: 'Akasya', time: '2h ago', room: 'Standard', guests: '2', total: '₺3.500' }
+                ];
+                loading.value = false;
+            }, 1000);
+        });
+
+        return {
+            isDark, toggleDark, currentPage, sidebarOpen, menu, form, 
+            guestDropdown, roomTypes, balance, formatCurrency, 
+            recent, loading, changeGuest, saveReservation, sendWhatsApp, copyGuest
+        };
     }
-}
-
-// ======= SIDEBAR =======
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const isHidden = sidebar.classList.contains('-translate-x-full');
-    
-    if (isHidden) {
-        sidebar.classList.remove('-translate-x-full');
-        overlay.classList.remove('hidden');
-    } else {
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
-    }
-}
-
-// ======= DARK MODE =======
-function toggleDark() {
-    if (document.documentElement.classList.contains('dark')) {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-    } else {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-    }
-}
-
-// ======= GUEST SYSTEM =======
-function toggleGuestDropdown(e) {
-    // Tıklamanın yayılmasını durdur ki document.click kapatmasın
-    if(e) e.stopPropagation();
-    guestDropdown.classList.toggle("hidden");
-}
-
-function changeGuest(type, delta) {
-    if (type === 'adult') {
-        adults = Math.max(1, adults + delta); // En az 1 yetişkin
-        adultCountText.innerText = adults;
-    } else {
-        children = Math.max(0, children + delta);
-        childCountText.innerText = children;
-    }
-    guestSummary.innerText = `${adults} Adults, ${children} Children`;
-}
-
-// Dışarı tıklandığında dropdown kapatma
-document.addEventListener("click", function(e) {
-    if (!guestDropdown.contains(e.target) && !e.target.closest('[onclick="toggleGuestDropdown()"]')) {
-        guestDropdown.classList.add("hidden");
-    }
-});
-
-// ======= PAYMENT SYSTEM =======
-function formatCurrency(value) {
-    return new Intl.NumberFormat('tr-TR', {
-        style: 'currency',
-        currency: 'TRY',
-        minimumFractionDigits: 2
-    }).format(value || 0);
-}
-
-function updateMoney() {
-    // Sadece sayıları al (nokta ve virgül karmaşasını önlemek için)
-    const total = parseFloat(totalPaymentInput.value) || 0;
-    const received = parseFloat(receivedPaymentInput.value) || 0;
-    const remaining = total - received;
-    
-    remainingPaymentInput.value = formatCurrency(remaining);
-    
-    // Renk Yönetimi (Modern tasarım sınıfları)
-    if (remaining > 0) {
-        remainingPaymentInput.classList.remove('text-emerald-500');
-        remainingPaymentInput.classList.add('text-rose-500');
-    } else if (total > 0 && remaining <= 0) {
-        remainingPaymentInput.classList.remove('text-rose-500');
-        remainingPaymentInput.classList.add('text-emerald-500');
-    } else {
-        remainingPaymentInput.classList.remove('text-rose-500', 'text-emerald-500');
-    }
-}
-
-// ======= ACTIONS =======
-function sendWhatsApp() {
-    const phone = guestPhoneInput.value.replace(/\D/g,'');
-    if (!phone) {
-        alert("Please enter a phone number!");
-        return;
-    }
-    
-    const text = `*New Reservation*\n` +
-                 `Guest: ${guestNameInput.value} ${guestSurnameInput.value}\n` +
-                 `Stay: ${document.getElementById('dateRange').value}\n` +
-                 `People: ${guestSummary.innerText}\n` +
-                 `Total: ${formatCurrency(parseFloat(totalPaymentInput.value))}`;
-
-    const url = `https://wa.me/90${phone}?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank");
-}
-
-function saveReservation() {
-    const data = {
-        name: guestNameInput.value,
-        surname: guestSurnameInput.value,
-        phone: guestPhoneInput.value,
-        dates: document.getElementById('dateRange').value,
-        room: document.getElementById('roomType').value,
-        guests: { adults, children },
-        payment: {
-            total: totalPaymentInput.value,
-            received: receivedPaymentInput.value,
-            remaining: remainingPaymentInput.value
-        }
-    };
-
-    if(!data.name || !data.dates) {
-        alert("Please fill in the guest name and dates!");
-        return;
-    }
-
-    console.log("Data to Save:", data);
-    alert("Reservation successfully saved!");
-}
-
-function copyGuest() {
-    const info = `Guest: ${guestNameInput.value} ${guestSurnameInput.value}\nPhone: ${guestPhoneInput.value}`;
-    navigator.clipboard.writeText(info);
-    alert("Guest info copied to clipboard!");
-}
+}).mount('#app');
