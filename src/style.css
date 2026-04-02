@@ -1,38 +1,57 @@
 @import "tailwindcss";
 @import "./assets/flatpickr-custom.css";
 
-/* v4 Dark Mode Konfigürasyonu */
-@variant dark (&:where(.dark, .dark *));
+@theme {
+  --animate-pulse-slow: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
-@layer components {
-  .recent-card {
-    @apply p-4 m-1 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 
-           dark:border-slate-700 hover:border-teal-500 transition-all 
-           cursor-pointer shadow-md hover:shadow-lg active:scale-[0.98];
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
-  .modern-input {
-    @apply w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none transition-all focus:ring-2 focus:ring-teal-500 text-slate-900 dark:text-white;
-    
-    min-width: 0; /* Allows the input to shrink below its default width */
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
-  .nav-link {
-    @apply flex items-center gap-3 p-3 rounded-xl transition-all text-slate-600 dark:text-slate-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:text-teal-600;
-  }
-
-  .nav-link.active {
-    @apply bg-teal-500 text-white shadow-lg shadow-teal-200 dark:shadow-none;
-  }
-
-  .action-btn {
-    @apply px-5 py-3 rounded-xl font-semibold transition-all active:scale-95 flex items-center gap-2;
-  }
-
 }
 
-/* Scrollbar */
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-200 dark:bg-slate-700 rounded-full; }
+/* Custom Variant for Dark Mode */
+@variant dark (&:where(.dark, .dark *));
+
+@utility recent-card {
+  @apply p-4 m-1 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 
+         dark:border-slate-700 hover:border-teal-500 transition-all 
+         cursor-pointer shadow-md hover:shadow-lg active:scale-[0.98];
+}
+
+@utility skeleton-box {
+  /* We use a specific background color here so the pulse is visible */
+  @apply bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse-slow;
+}
+
+@utility modern-input {
+  @apply w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 
+         dark:border-slate-700 rounded-xl outline-none transition-all 
+         focus:ring-2 focus:ring-teal-500 text-slate-900 dark:text-white;
+}
+
+@utility nav-link {
+  @apply flex items-center gap-3 p-3 rounded-xl transition-all text-slate-600 
+         dark:text-slate-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:text-teal-600;
+}
+
+/* Custom scrollbar - standard CSS */
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+  background: #e2e8f0; 
+  border-radius: 10px; 
+}
+
+.list-enter-active {
+  transition: all 0.4s ease-out;
+}
+
+.list-enter-from {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+
+/* Optional: Smoothly move items if the list changes */
+.list-move {
+  transition: transform 0.4s ease;
+}
