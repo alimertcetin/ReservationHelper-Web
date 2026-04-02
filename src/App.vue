@@ -36,12 +36,12 @@
       </div>
     </nav>
 
-    <main class="max-w-[1600px] mx-auto p-4 md:p-6 h-[calc(100vh-68px)]">
-       <BookingPage v-if="currentPage === 'bookings'" :form="form" />
-      
-      <div v-else class="flex items-center justify-center h-full opacity-30">
-        <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
-      </div>
+    <main class="max-w-[1600px] mx-auto p-4 md:p-6 min-h-[calc(100vh-68px)]">
+        <BookingPage v-if="currentPage === 'bookings'" :form="form" />
+        
+        <div v-else class="flex items-center justify-center h-96 opacity-30">
+            <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
+        </div>
     </main>
 
     <TheToast />
