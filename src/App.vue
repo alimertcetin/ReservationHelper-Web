@@ -37,17 +37,21 @@
     </nav>
 
     <main class="max-w-[1600px] mx-auto p-4 md:p-6 h-[calc(100vh-68px)]">
-      <BookingPage v-if="currentPage === 'bookings'" :form="form" @save="handleSave" @whatsapp="handleWhatsApp" />
+       <BookingPage v-if="currentPage === 'bookings'" :form="form" />
+      
       <div v-else class="flex items-center justify-center h-full opacity-30">
         <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
       </div>
     </main>
+
+    <TheToast />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import BookingPage from './components/BookingPage.vue'
+import TheToast from './components/TheToast.vue'
 
 const isDark = ref(false)
 const sidebarOpen = ref(false)
@@ -60,14 +64,15 @@ const menu = [
   { id: 'settings', label: 'Settings', icon: '⚙️' }
 ]
 
+// Global form state if you want it to persist between menu switches
 const form = reactive({
-  roomType: 'Standard Room',
-  dates: '',
   name: '',
   surname: '',
   phone: '',
-  adults: 2,
-  children: 0,
+  staffName: '', // Track who is booking
+  rooms: [
+    { id: Date.now(), type: 'Standard Room', dates: '', adults: 2, children: 0 }
+  ],
   total: 0,
   received: 0
 })
@@ -75,14 +80,5 @@ const form = reactive({
 const toggleDark = () => {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark')
-}
-
-const handleSave = () => {
-  alert(`Saving reservation for ${form.name}...`)
-}
-
-const handleWhatsApp = () => {
-  const msg = `Booking: ${form.name} ${form.surname} (${form.dates})`
-  window.open(`https://wa.me/90${form.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`)
 }
 </script>
