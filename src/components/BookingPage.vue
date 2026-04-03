@@ -146,6 +146,7 @@ import Handlebars from 'handlebars'
 import { messageTemplates } from '../utils/templates.js'
 import { useToast } from '../composables/useToast'
 import { useBookingLogic } from '../composables/useBookingLogic'
+import { bookingService } from '../services/api.js';
 
 import RoomStayItem from './RoomStayItem.vue'
 import ActivityCard from './ActivityCard.vue'
@@ -200,10 +201,46 @@ const copyToClipboard = async () => {
   showToast("Copied!", "Ready to send on WhatsApp.")
 }
 
-const handleSave = () => {
-  showToast("Saved!", "Database record updated.")
-  emit('save')
-}
+const handleSave = async () => {
+  try {
+    // Find the staff ID based on the name typed in the input
+    const staff = staffMembers.value.find(s => s.name === props.form.staffName);
+    
+    const payload = {
+      guest: {
+        firstName: props.form.name,
+        lastName: props.form.surname,
+        phone: props.form.phone,
+        email: props.form.email // if you add it to the UI
+      },
+      staffId: staff?.id || 1, // Fallback to admin if not found
+      totalAmount: props.form.total,
+      rooms: props.form.rooms.map(r => {
+        const dates = r.dates.split(' to ');
+        return {
+          type: r.type,
+          startDate: dates[0],
+          endDate: dates[1],
+          adults: r.adults,
+          children: r.children,
+          price: r.price
+        };
+      })
+    };
+
+    const response = await bookingService.saveReservation(payload);
+    
+    showToast("Success!", `Reservation #${response.data.id} confirmed.`);
+    resetForm();
+    
+    // Refresh the recent list
+    const updatedRecent = await bookingService.getRecentBookings();
+    recent.value = updatedRecent.data;
+    
+  } catch (error) {
+    showToast("Error", error.response?.data?.error || "Save failed", "error");
+  }
+};
 
 const resetForm = () => {
   currentReservationId.value = null
@@ -215,8 +252,16 @@ const resetForm = () => {
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 
 onMounted(async () => {
-  let room = { id: 101, name: 'Mert', surname: 'Demir', time: Date.now(), rooms: [{type: 'King Suite', price: 20000}], total: 20000 };
-  recent.value = [room, room, room, room, room]
+  try {
+    const [staffRes, recentRes] = await Promise.all([
+      bookingService.getStaff(),
+      bookingService.getRecentBookings()
+    ]);
+    staffMembers.value = staffRes.data;
+    recent.value = recentRes.data;
+  } catch (err) {
+    showToast("Error", "Failed to load initial data", "error");
+  }
 })
 </script>
 
