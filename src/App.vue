@@ -38,6 +38,7 @@
 
     <main class="max-w-[1600px] mx-auto p-4 md:p-6 min-h-[calc(100vh-68px)]">
         <BookingPage v-if="currentPage === 'bookings'" :form="form" />
+        <PriceManager v-if="currentPage === 'priceManager'" :form="form" />
         
         <div v-else class="flex items-center justify-center h-96 opacity-30">
             <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
@@ -51,6 +52,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import BookingPage from './components/BookingPage.vue'
+import PriceManager from './components/PriceManager.vue'
 import TheToast from './components/TheToast.vue'
 
 const isDark = ref(false)
@@ -61,6 +63,7 @@ const menu = [
   { id: 'bookings', label: 'New Booking', icon: '🏨' },
   { id: 'rooms', label: 'Room List', icon: '🛏️' },
   { id: 'accounts', label: 'Bank Info', icon: '💳' },
+  { id: 'priceManager', label: 'Price Manager', icon: '$' },
   { id: 'settings', label: 'Settings', icon: '⚙️' }
 ]
 
