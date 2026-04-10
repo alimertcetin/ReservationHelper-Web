@@ -24,5 +24,14 @@ export const bookingService = {
   getSuggestedPrice: (params) => api.get('/prices/suggest', { params }),
   
   // Get recent bookings for the Activity Sidebar
-  getRecentBookings: () => api.get('/reservations/recent')
+  getRecentBookings: () => api.get('/reservations/recent'),
+
+  createPriceRule: (data) => api.post('/prices', data),
+  deletePriceRule: (id) => api.delete(`/prices/${id}`),
+  getPriceRules: () => api.get('/prices/all'),
+  
+  getRoomTypes: () => api.get('/roomTypes/all'),
+  
+  // Update this to match your PUT /sync endpoint
+  syncPriceRules: (rules) => api.put('/prices/sync', { rules }),
 };

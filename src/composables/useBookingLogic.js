@@ -1,64 +1,57 @@
+// composables/useBookingLogic.js
 import { computed } from 'vue'
-import { useToast } from './useToast'
 
-export function useBookingLogic(form, roomTypes) {
-  const { showToast } = useToast()
-
-  const balance = computed(() => (form.total || 0) - (form.received || 0))
+export function useBookingLogic(form) {
+  
+  const balance = computed(() => {
+    return (form.total || 0) - (form.received || 0);
+  });
 
   const addRoom = () => {
-    const lastRoom = form.rooms[form.rooms.length - 1]
     form.rooms.push({
       id: Date.now(),
-      type: lastRoom ? lastRoom.type : roomTypes[0],
-      dates: lastRoom ? lastRoom.dates : '',
-      price: lastRoom ? lastRoom.price : 0,
-      adults: lastRoom ? lastRoom.adults : 2,
-      children: lastRoom ? lastRoom.children : 0
-    })
-    showToast("Room Added", "Details copied from previous stay.")
-  }
+      roomTypeId: null, // Use ID, not name
+      checkIn: null,
+      checkOut: null,
+      adults: 2,
+      children: 0,
+      price: 0
+    });
+  };
 
   const removeRoom = (index) => {
-    form.rooms.splice(index, 1)
-  }
-
-  const calculateTotalFromRooms = () => {
-    const sum = form.rooms.reduce((acc, room) => acc + (Number(room.price) || 0), 0)
-    form.total = sum
-  }
-
-  const loadReservation = (data) => {
-    // 1. Map top-level fields
-    form.name = data.name || '';
-    form.surname = data.surname || '';
-    form.phone = data.phone || '';
-    form.staffName = data.staffName || '';
-    form.total = data.total || 0;
-    form.received = data.received || 0;
-
-    // 2. Handle Rooms (Crucial: Ensure it's an array and has IDs for Vue's :key)
-    if (data.rooms && Array.isArray(data.rooms)) {
-      form.rooms = data.rooms.map(r => ({
-        id: r.id || Date.now() + Math.random(),
-        type: r.type || roomTypes[0],
-        dates: r.dates || '',
-        price: r.price || 0,
-        adults: r.adults || 2,
-        children: r.children || 0
-      }));
-    } else if (data.room) { 
-      // Fallback for old data structure
-      form.rooms = [{
-        id: Date.now(),
-        type: data.room,
-        dates: '',
-        price: data.total || 0,
-        adults: 2,
-        children: 0
-      }];
+    if (form.rooms.length > 1) {
+      form.rooms.splice(index, 1);
     }
   };
 
-  return { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation }
+  const calculateTotalFromRooms = () => {
+    form.total = form.rooms.reduce((acc, room) => acc + (Number(room.price) || 0), 0);
+  };
+
+  const loadReservation = (data) => {
+    // Mapping incoming DB data to our strict form state
+    form.name = data.guest.firstName;
+    form.surname = data.guest.lastName;
+    form.phone = data.guest.phone;
+    form.total = Number(data.totalAmount);
+    form.received = Number(data.received || 0);
+    form.rooms = data.rooms.map(r => ({
+      id: r.id,
+      roomTypeId: r.roomTypeId,
+      checkIn: r.startDate.split('T')[0],
+      checkOut: r.endDate.split('T')[0],
+      adults: r.adults,
+      children: r.children,
+      price: Number(r.price)
+    }));
+  };
+
+  return {
+    balance,
+    addRoom,
+    removeRoom,
+    calculateTotalFromRooms,
+    loadReservation
+  };
 }

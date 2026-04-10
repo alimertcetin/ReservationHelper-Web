@@ -3,16 +3,22 @@ import { ref } from 'vue'
 const toasts = ref([])
 
 export function useToast() {
-  const showToast = (message, subtext = 'Action successful', type = 'success') => {
+  const showToast = (title, subtext = 'Action successful', type = 'success') => {
     const id = Date.now() + Math.random() // Unique ID
     
     // Add to the stack
-    toasts.value.push({ id, message, subtext, type })
+    toasts.value.push({ id, title, subtext, type })
+
+    const readingTime = subtext.length * 60 // ms
+    const minTime = 2000
+    const maxTime = 6000
+
+    const duration = Math.min(Math.max(readingTime, minTime), maxTime)
 
     // Auto-remove after 3 seconds
     setTimeout(() => {
       removeToast(id)
-    }, subtext.length * 0.04 * 1000)
+    }, duration)
   }
 
   const removeToast = (id) => {

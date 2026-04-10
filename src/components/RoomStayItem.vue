@@ -12,9 +12,17 @@
     <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
       <div class="md:col-span-4 space-y-1">
         <label class="text-[9px] font-bold uppercase opacity-40">Room Type</label>
-        <select v-model="room.type" class="modern-input-sm" @change="fetchSuggestedPrice">
-          <option v-for="type in roomTypes" :key="type">{{ type }}</option>
+        
+        <select 
+        v-model="room.roomTypeId" 
+        class="modern-input-sm" 
+        @change="fetchSuggestedPrice"
+        >
+        <option v-for="type in roomTypes" :key="type.id" :value="type.id">
+          {{ type.name }}
+        </option>
         </select>
+
       </div>
 
       <div class="md:col-span-5 space-y-1">
@@ -41,13 +49,35 @@
         </div>
       </div>
 
+
       <div class="md:col-span-6 space-y-1">
-        <label class="text-[9px] font-bold uppercase text-blue-500 opacity-60">Suggested Price</label>
-        <div class="modern-input-sm bg-blue-50/30 dark:bg-blue-900/10 border-blue-100/50 flex items-center justify-between py-1.5">
-          <span class="font-mono font-bold text-blue-600 text-xs">{{ suggestedPrice }}₺</span>
-          <button @click="applySuggested" class="text-[8px] bg-blue-600 text-white px-2 py-0.5 rounded-md hover:bg-blue-700 transition-colors">Apply</button>
+        <label class="text-[9px] font-bold uppercase opacity-60" :class="priceError ? 'text-rose-500' : 'text-blue-500'">
+          {{ priceError ? 'Pricing Error' : 'Suggested Price' }}
+        </label>
+
+        <div v-if="!priceError && suggestedPrice > 0" 
+             class="modern-input-sm bg-blue-50/30 dark:bg-blue-900/10 border-blue-100/50 flex items-center justify-between py-1.5">
+          <span class="font-mono font-bold text-blue-600 dark:text-blue-400 text-xs">{{ suggestedPrice }}₺</span>
+          <button @click="applySuggested" 
+                  class="text-[8px] bg-blue-600 text-white px-2 py-0.5 rounded-md hover:bg-blue-700 transition-colors">
+            Apply
+          </button>
         </div>
+
+        <div v-else-if="!priceError && !suggestedPrice" 
+             class="modern-input-sm bg-slate-50 dark:bg-slate-800/50 border-dashed border-slate-200 text-[10px] text-slate-400 py-1.5 italic">
+          Select dates to see price...
+        </div>
+
+        <div v-else 
+             class="modern-input-sm bg-rose-50/50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-900/50 flex items-center gap-2 py-1.5">
+          <span class="text-[10px] text-rose-500 font-bold flex-1">
+            ⚠️ No price defined for these dates!
+          </span>
+          </div>
       </div>
+
+
 
       <div class="md:col-span-6 space-y-1">
         <label class="text-[9px] font-bold uppercase opacity-40">Actual Price</label>
@@ -61,55 +91,58 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import 'flatpickr/dist/flatpickr.min.css'
 import flatpickr from 'flatpickr'
 import { Turkish } from "flatpickr/dist/l10n/tr.js"
-import { bookingService } from "../services/api.js";
+import { bookingService } from "./../services/api.js"
+import { useToast } from '../composables/useToast'
+import { dateToData } from "../utils/utility.js"
+const { showToast } = useToast()
 
 const props = defineProps(['room', 'roomTypes', 'canRemove'])
 const emit = defineEmits(['remove'])
 
 const dateInput = ref(null)
-const suggestedPrice = ref(10000)
+const priceError = ref(false)
+const suggestedPrice = ref(0)
 
 const applySuggested = () => { 
   props.room.price = suggestedPrice.value 
 }
 
 const fetchSuggestedPrice = async () => {
-  console.log(props);
-  console.log(props.room);
-  console.log(props.room.dates);
-  console.log(props.roomTypes);
-  // console.log("fetchSuggestedPrice: " + response);
-  // Your logic here: Call API with (props.room.type, props.room.dates, props.room.adults)
+  if (!props.room.checkIn || !props.room.checkOut || !props.room.roomTypeId)
+  {
+    showToast("Error", "Can't retrieve suggested prices", "error");
+    priceError.value = true;
+    return;
+  }
 
-}
+  try {
+    priceError.value = false;
+    const response = await bookingService.getSuggestedPrice({
+      roomTypeId: props.room.roomTypeId,
+      startDate: props.room.checkIn,
+      endDate: props.room.checkOut
+    });
 
-function formatDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+    suggestedPrice.value = response.data.totalSuggestedPrice;
+  } catch (err) {
+    priceError.value = true;
+    suggestedPrice.value = 0;
+  }
 }
 
 onMounted(() => {
   flatpickr(dateInput.value, {
     mode: "range",
     dateFormat: "j F Y (l)",
-    locale: Turkish,
-    defaultDate: props.room.dates || null,
-    minDate: "today",
-    onChange: (selectedDates, dateStr, instance) => { 
-      if (selectedDates.length > 1) 
-      {
-        const [start, end] = selectedDates;
-        props.room.dates = [
-          formatDate(start),
-          formatDate(end)
-        ];
+    onChange: (selectedDates) => {
+      if (selectedDates.length === 2) {
+        // STRICT: Update the raw data state
+        props.room.checkIn = dateToData(selectedDates[0]);
+        props.room.checkOut = dateToData(selectedDates[1]);
         fetchSuggestedPrice();
       }
     }

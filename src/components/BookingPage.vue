@@ -151,15 +151,12 @@ import { bookingService } from '../services/api.js';
 import RoomStayItem from './RoomStayItem.vue'
 import ActivityCard from './ActivityCard.vue'
 import CustomModal from './CustomModal.vue'
+const roomTypes = ref([]); // Now populated with objects: { id, name }
+const staffMembers = ref([]);
 
 const props = defineProps(['form'])
 const emit = defineEmits(['save'])
 const { showToast } = useToast()
-
-const roomTypes = ref(['Standard Room', 'Deluxe Suite', 'Family Room', 'King Suite', 'Bungalow'])
-const staffMembers = ref([]);
-
-const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form, roomTypes.value)
 
 const showPreviewModal = ref(false)
 const generatedText = ref("")
@@ -168,6 +165,10 @@ const recent = ref([])
 const currentReservationId = ref(null)
 const modalActive = ref(false)
 const selectedResData = ref(null)
+
+
+
+const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form);
 
 const filteredRecent = computed(() => {
   if (!searchQuery.value) return recent.value
@@ -203,37 +204,30 @@ const copyToClipboard = async () => {
 
 const handleSave = async () => {
   try {
-    // Find the staff ID based on the name typed in the input
     const staff = staffMembers.value.find(s => s.name === props.form.staffName);
-    
     const payload = {
       guest: {
         firstName: props.form.name,
         lastName: props.form.surname,
         phone: props.form.phone,
-        email: props.form.email // if you add it to the UI
       },
-      staffId: staff?.id || 1, // Fallback to admin if not found
+      staffId: staff?.id || staffMembers.value[0]?.id,
       totalAmount: props.form.total,
-      rooms: props.form.rooms.map(r => {
-        const dates = r.dates;
-        return {
-          type: r.type,
-          startDate: dates[0],
-          endDate: dates[1],
-          adults: r.adults,
-          children: r.children,
-          price: r.price
-        };
-      })
+      received: props.form.received,
+      rooms: props.form.rooms.map(r => ({
+        roomTypeId: r.roomTypeId, // Direct ID usage
+        startDate: r.checkIn,     // Pure YYYY-MM-DD
+        endDate: r.checkOut,       // Pure YYYY-MM-DD
+        adults: r.adults,
+        children: r.children,
+        price: r.price
+      }))
     };
 
     const response = await bookingService.saveReservation(payload);
-    
     showToast("Success!", `Reservation #${response.data.id} confirmed.`);
     resetForm();
     
-    // Refresh the recent list
     const updatedRecent = await bookingService.getRecentBookings();
     recent.value = updatedRecent.data;
     
@@ -243,11 +237,20 @@ const handleSave = async () => {
 };
 
 const resetForm = () => {
-  currentReservationId.value = null
-  props.form.name = ""; props.form.surname = ""; props.form.phone = "";
-  props.form.total = 0; props.form.received = 0;
-  props.form.rooms = [{ id: Date.now(), type: roomTypes.value[0], dates: '', adults: 2, children: 0, price: 0 }]
-}
+  currentReservationId.value = null;
+  Object.assign(props.form, {
+    name: "", surname: "", phone: "", total: 0, received: 0, staffName: "",
+    rooms: [{ 
+      id: null, 
+      roomTypeId: roomTypes.value[0]?.id, 
+      checkIn: null, 
+      checkOut: null, 
+      adults: 2, 
+      children: 0, 
+      price: 0 
+    }]
+  });
+};
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 
@@ -257,10 +260,8 @@ onMounted(async () => {
       bookingService.getRecentBookings(),
       bookingService.getStaff(),
     ]);
-    if (staffRes.length === 0) {
-      const addedStaff = bookingService.addStaff({name:"Ali", role:"RECEPTIONIST"});
-      showToast("Staff Added", addedStaff);
-    }
+
+    roomTypes.value = await bookingService.getRoomTypes();
     staffMembers.value = staffRes.data;
     console.log(addedStaff);
     console.log(staffMembers);
