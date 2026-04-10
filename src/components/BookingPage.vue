@@ -54,7 +54,7 @@
             <TransitionGroup name="list">
               <RoomStayItem 
                 v-for="(room, index) in form.rooms" 
-                :key="room.id" 
+                :key="room.id"
                 :room="room" 
                 :roomTypes="roomTypes"
                 :canRemove="form.rooms.length > 1"
@@ -243,6 +243,7 @@ const resetForm = () => {
     rooms: [{ 
       id: null, 
       roomTypeId: roomTypes.value[0]?.id, 
+      renderKey: Date.now(), // Force recreation of the first room's UI
       checkIn: null, 
       checkOut: null, 
       adults: 2, 
@@ -256,18 +257,18 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 
 onMounted(async () => {
   try {
-    const [recentRes, staffRes] = await Promise.all([
+    const [recentRes, staffRes, roomTypeRes] = await Promise.all([
       bookingService.getRecentBookings(),
       bookingService.getStaff(),
+      bookingService.getRoomTypes(),
     ]);
 
-    roomTypes.value = await bookingService.getRoomTypes();
-    staffMembers.value = staffRes.data;
-    console.log(addedStaff);
-    console.log(staffMembers);
-    console.log(staffMembers.value);
     recent.value = recentRes.data;
+    staffMembers.value = staffRes.data;
+    roomTypes.value = roomTypeRes.data;
+
   } catch (err) {
+    console.log(err);
     showToast("Error", "Failed to load initial data", "error");
   }
 })

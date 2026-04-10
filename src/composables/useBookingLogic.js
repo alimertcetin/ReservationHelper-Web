@@ -9,8 +9,9 @@ export function useBookingLogic(form) {
 
   const addRoom = () => {
     form.rooms.push({
-      id: Date.now(),
+      id: Date.now() + Math.random(),
       roomTypeId: null, // Use ID, not name
+      renderKey: Date.now(), // This forces a fresh Flatpickr instance
       checkIn: null,
       checkOut: null,
       adults: 2,

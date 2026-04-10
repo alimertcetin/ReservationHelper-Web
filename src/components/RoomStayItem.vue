@@ -27,7 +27,12 @@
 
       <div class="md:col-span-5 space-y-1">
         <label class="text-[9px] font-bold uppercase opacity-40">Stay Dates</label>
-        <input ref="dateInput" :value="room.dates" class="modern-input-sm cursor-pointer" placeholder="Select Dates" readonly>
+        <input 
+        ref="dateInput" 
+        class="modern-input-sm cursor-pointer" 
+        placeholder="Select Dates" 
+        readonly
+        >
       </div>
 
       <div class="md:col-span-3 flex items-end gap-1">
@@ -91,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import 'flatpickr/dist/flatpickr.min.css'
 import flatpickr from 'flatpickr'
 import { Turkish } from "flatpickr/dist/l10n/tr.js"
@@ -104,6 +109,7 @@ const props = defineProps(['room', 'roomTypes', 'canRemove'])
 const emit = defineEmits(['remove'])
 
 const dateInput = ref(null)
+let fpInstance = null
 const priceError = ref(false)
 const suggestedPrice = ref(0)
 
@@ -114,8 +120,6 @@ const applySuggested = () => {
 const fetchSuggestedPrice = async () => {
   if (!props.room.checkIn || !props.room.checkOut || !props.room.roomTypeId)
   {
-    showToast("Error", "Can't retrieve suggested prices", "error");
-    priceError.value = true;
     return;
   }
 
@@ -129,25 +133,52 @@ const fetchSuggestedPrice = async () => {
 
     suggestedPrice.value = response.data.totalSuggestedPrice;
   } catch (err) {
+    showToast("Error", "Can't retrieve suggested prices", "error");
+    console.log(err);
     priceError.value = true;
-    suggestedPrice.value = 0;
   }
 }
 
-onMounted(() => {
-  flatpickr(dateInput.value, {
+const initFlatpickr = () => {
+  // Destroy existing instance if it exists to prevent memory leaks
+  if (fpInstance) fpInstance.destroy();
+
+  fpInstance = flatpickr(dateInput.value, {
     mode: "range",
     dateFormat: "j F Y (l)",
+    locale: Turkish,
+    minDate: "today",
+    // Set initial values from props immediately
+    defaultDate: props.room.checkIn && props.room.checkOut 
+      ? [props.room.checkIn, props.room.checkOut] 
+      : null,
     onChange: (selectedDates) => {
       if (selectedDates.length === 2) {
-        // STRICT: Update the raw data state
+        // Update the object properties
         props.room.checkIn = dateToData(selectedDates[0]);
         props.room.checkOut = dateToData(selectedDates[1]);
         fetchSuggestedPrice();
       }
     }
-  })
-})
+  });
+}
+
+// Watch for external changes (like Reset Form or Load Reservation)
+watch(() => props.room.checkIn, (newVal) => {
+  if (!newVal && fpInstance && fpInstance.selectedDates.length > 0) {
+    fpInstance.clear();
+  }
+});
+
+onMounted(() => {
+  initFlatpickr();
+});
+
+onBeforeUnmount(() => {
+  if (fpInstance) {
+    fpInstance.destroy();
+  }
+});
 </script>
 
 <style scoped>
