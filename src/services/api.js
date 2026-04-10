@@ -13,10 +13,16 @@ export const bookingService = {
   
   // Get all staff for the datalist
   getStaff: () => api.get('/staff'),
+  createStaff: (data) => api.post('/staff', data),
+  updateStaff: (id, data) => api.put(`/staff/${id}`, data),
+  deleteStaff: (id) => api.delete(`/staff/${id}`),
+  
+  // add new staff
+  addStaff: (staff) => api.post('/staff', staff),
   
   // Get dynamic price from the rules engine
   getSuggestedPrice: (params) => api.get('/prices/suggest', { params }),
   
   // Get recent bookings for the Activity Sidebar
-  getRecentBookings: () => api.get('/reservations/recent') 
+  getRecentBookings: () => api.get('/reservations/recent')
 };

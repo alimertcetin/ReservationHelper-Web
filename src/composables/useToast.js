@@ -12,7 +12,7 @@ export function useToast() {
     // Auto-remove after 3 seconds
     setTimeout(() => {
       removeToast(id)
-    }, 3000)
+    }, subtext.length * 0.04 * 1000)
   }
 
   const removeToast = (id) => {

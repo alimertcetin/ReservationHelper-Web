@@ -88,7 +88,7 @@
           </div>
 
           <div class="flex flex-wrap gap-4">
-            <button @click="handleSave" class="flex-1 min-w-[200px] bg-teal-500 hover:bg-teal-600 hover:scale-102 text-white font-bold p-4 rounded-xl shadow-lg transition-all">
+            <button @click="updateReservation" class="flex-1 min-w-[200px] bg-teal-500 hover:bg-teal-600 hover:scale-102 text-white font-bold p-4 rounded-xl shadow-lg transition-all">
               {{ currentReservationId ? '💾 Update Changes' : '🏨 Confirm Reservation' }}
             </button>
             <button @click="generateMessage('guest')" class="btn-icon bg-emerald-500 hover:bg-emerald-600 hover:scale-105 transition-all">👤 Guest Msg</button>
@@ -157,7 +157,7 @@ const emit = defineEmits(['save'])
 const { showToast } = useToast()
 
 const roomTypes = ref(['Standard Room', 'Deluxe Suite', 'Family Room', 'King Suite', 'Bungalow'])
-const staffMembers = ref([{ id: 1, name: 'Ahmet Y.' }, { id: 2, name: 'Selin K.' }])
+const staffMembers = ref([]);
 
 const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form, roomTypes.value)
 
@@ -216,7 +216,7 @@ const handleSave = async () => {
       staffId: staff?.id || 1, // Fallback to admin if not found
       totalAmount: props.form.total,
       rooms: props.form.rooms.map(r => {
-        const dates = r.dates.split(' to ');
+        const dates = r.dates;
         return {
           type: r.type,
           startDate: dates[0],
@@ -253,11 +253,18 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 
 onMounted(async () => {
   try {
-    const [staffRes, recentRes] = await Promise.all([
+    const [recentRes, staffRes] = await Promise.all([
+      bookingService.getRecentBookings(),
       bookingService.getStaff(),
-      bookingService.getRecentBookings()
     ]);
+    if (staffRes.length === 0) {
+      const addedStaff = bookingService.addStaff({name:"Ali", role:"RECEPTIONIST"});
+      showToast("Staff Added", addedStaff);
+    }
     staffMembers.value = staffRes.data;
+    console.log(addedStaff);
+    console.log(staffMembers);
+    console.log(staffMembers.value);
     recent.value = recentRes.data;
   } catch (err) {
     showToast("Error", "Failed to load initial data", "error");

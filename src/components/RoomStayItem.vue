@@ -65,6 +65,7 @@ import { ref, onMounted } from 'vue'
 import 'flatpickr/dist/flatpickr.min.css'
 import flatpickr from 'flatpickr'
 import { Turkish } from "flatpickr/dist/l10n/tr.js"
+import { bookingService } from "../services/api.js";
 
 const props = defineProps(['room', 'roomTypes', 'canRemove'])
 const emit = defineEmits(['remove'])
@@ -77,7 +78,21 @@ const applySuggested = () => {
 }
 
 const fetchSuggestedPrice = async () => {
+  console.log(props);
+  console.log(props.room);
+  console.log(props.room.dates);
+  console.log(props.roomTypes);
+  // console.log("fetchSuggestedPrice: " + response);
   // Your logic here: Call API with (props.room.type, props.room.dates, props.room.adults)
+
+}
+
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 onMounted(() => {
@@ -87,9 +102,16 @@ onMounted(() => {
     locale: Turkish,
     defaultDate: props.room.dates || null,
     minDate: "today",
-    onChange: (_, dateStr) => { 
-      props.room.dates = dateStr
-      fetchSuggestedPrice()
+    onChange: (selectedDates, dateStr, instance) => { 
+      if (selectedDates.length > 1) 
+      {
+        const [start, end] = selectedDates;
+        props.room.dates = [
+          formatDate(start),
+          formatDate(end)
+        ];
+        fetchSuggestedPrice();
+      }
     }
   })
 })
