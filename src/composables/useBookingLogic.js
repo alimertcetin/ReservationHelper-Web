@@ -1,22 +1,48 @@
 // composables/useBookingLogic.js
 import { computed } from 'vue'
+import { dateToData } from '../utils/utility'
 
-export function useBookingLogic(form) {
+export function useBookingLogic(form, roomTypes) {
   
   const balance = computed(() => {
     return (form.total || 0) - (form.received || 0);
   });
 
-  const addRoom = () => {
+  const addDays = (originalDate, days) => {
+    let date;
+    if (typeof originalDate === 'string') {
+      // Split the YYYY-MM-DD to avoid timezone shifting
+      const [y, m, d] = originalDate.split('-').map(Number);
+      date = new Date(y, m - 1, d); 
+    } else {
+      date = new Date(originalDate);
+    }
+    
+    date.setDate(date.getDate() + days);
+    
+    // Return in YYYY-MM-DD format manually to be safe
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const addRoom = (roomTypes) => {
+    const lastRoom = form.rooms.at(-1);
+    console.log(JSON.stringify(lastRoom, null, 2));
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
     form.rooms.push({
-      id: Date.now() + Math.random(),
-      roomTypeId: null, // Use ID, not name
-      renderKey: Date.now(), // This forces a fresh Flatpickr instance
-      checkIn: null,
-      checkOut: null,
-      adults: 2,
-      children: 0,
-      price: 0
+      id: crypto.randomUUID(), // Use this for better uniqueness
+      roomTypeId: lastRoom?.roomTypeId ?? roomTypes?.value[0]?.id ?? 0,
+      renderKey: Date.now(),
+      // If there's a last room, copy its dates, otherwise use today/tomorrow
+      checkIn: lastRoom?.checkIn ?? todayStr,
+      checkOut: lastRoom?.checkOut ?? addDays(todayStr, 1),
+      adults: lastRoom?.adults ?? 2,
+      children: lastRoom?.children ?? 0,
+      price: lastRoom?.price ?? 0
     });
   };
 
