@@ -39,17 +39,17 @@
         <div class="flex-1 flex flex-col items-center bg-slate-50 dark:bg-slate-800 rounded-xl py-1 border border-slate-100 dark:border-slate-700">
           <p class="text-[9px] uppercase font-bold opacity-40">Yetişkin</p>
           <div class="flex items-center gap-2 justify-between mt-1">
-            <button @click="room.adults = Math.max(1, room.adults - 1)" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">-</button>
+            <button @click="room.adults = room.adults == undefined ? 1 : Math.max(1, room.adults - 1)" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">-</button>
             <span class="font-mono font-bold text-xs">{{ room.adults }}</span>
-            <button @click="room.adults++" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">+</button>
+            <button @click="room.adults = room.adults == undefined ? 1 : room.adults + 1" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">+</button>
           </div>
         </div>
         <div class="flex-1 flex flex-col items-center bg-slate-50 dark:bg-slate-800 rounded-xl py-1 border border-slate-100 dark:border-slate-700">
           <p class="text-[9px] uppercase font-bold opacity-40">Çocuk</p>
           <div class="flex items-center gap-2 justify-between mt-1">
-            <button @click="room.children = Math.max(0, room.children - 1)" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">-</button>
+            <button @click="room.children = room.children == undefined ? 1 : Math.max(0, room.children - 1)" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">-</button>
             <span class="font-mono font-bold text-xs">{{ room.children }}</span>
-            <button @click="room.children++" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">+</button>
+            <button @click="room.children = room.children == undefined ? 1 : room.children + 1" class="text-teal-500 px-2 hover:bg-teal-500/10 rounded">+</button>
           </div>
         </div>
       </div>
@@ -118,11 +118,13 @@ const applySuggested = () => {
 }
 
 const fetchSuggestedPrice = async () => {
+  console.log(props.room.checkIn, props.room.checkOut, props.room.roomTypeId)
   if (!props.room.checkIn || !props.room.checkOut || !props.room.roomTypeId)
   {
     return;
   }
 
+  console.log("fetching suggested price");
   try {
     priceError.value = false;
     const response = await bookingService.getSuggestedPrice({
@@ -148,10 +150,6 @@ const initFlatpickr = () => {
     dateFormat: "j F Y (l)",
     locale: Turkish,
     minDate: "today",
-    // Set initial values from props immediately
-    defaultDate: props.room.checkIn && props.room.checkOut 
-      ? [props.room.checkIn, props.room.checkOut] 
-      : null,
     onChange: (selectedDates) => {
       if (selectedDates.length === 2) {
         // Update the object properties
@@ -172,6 +170,13 @@ watch(() => props.room.checkIn, (newVal) => {
 
 onMounted(() => {
   initFlatpickr();
+  // do not fire onChange on flatpickr (.., false)
+  fpInstance.setDate([new Date(props.room.checkIn), new Date(props.room.checkOut)], false);
+  // props.room.roomTypeId == false this is true when props.room.roomTypeId = 0
+  if (props.roomTypes.length > 0 && props.room.roomTypeId == false) {
+    props.room.roomTypeId = props.roomTypes[0].id;
+  }
+  fetchSuggestedPrice();
 });
 
 onBeforeUnmount(() => {
