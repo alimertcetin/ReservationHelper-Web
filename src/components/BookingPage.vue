@@ -141,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import Handlebars from 'handlebars'
 import { messageTemplates } from '../utils/templates.js'
 import { useToast } from '../composables/useToast'
@@ -168,7 +168,7 @@ const selectedResData = ref(null)
 
 
 
-const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form);
+const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form, roomTypes);
 
 const filteredRecent = computed(() => {
   if (!searchQuery.value) return recent.value
@@ -267,10 +267,17 @@ onMounted(async () => {
     staffMembers.value = staffRes.data;
     roomTypes.value = roomTypeRes.data;
 
+    if (props.form.rooms.length === 0 || (props.form.rooms.length === 1 && props.form.rooms[0].id === null)) {
+      // Clear any placeholder room and add a fresh one with the correct roomTypeId
+      props.form.rooms = []; 
+      addRoom();
+    }
+
   } catch (err) {
     console.log(err);
     showToast("Error", "Failed to load initial data", "error");
   }
+
 })
 </script>
 
