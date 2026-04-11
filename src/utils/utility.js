@@ -1,6 +1,11 @@
-export function dateToData(date) {
-  return date.toISOString().split('T')[0]
-}
+export const dateToData = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export function dataToDate(data) {
 	// new Date("YYYY-MM-DD") is treated as UTC, which can shift the date depending on the user's timezone.
