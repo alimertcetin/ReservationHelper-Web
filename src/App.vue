@@ -75,10 +75,8 @@ const form = reactive({
   name: '',
   surname: '',
   phone: '',
-  staffName: '', // Track who is booking
-  rooms: [
-    { id: Date.now(), type: 'Standard Room', dates: '', adults: 2, children: 0 }
-  ],
+  staffName: '',
+  rooms: [],
   total: 0,
   received: 0
 })
