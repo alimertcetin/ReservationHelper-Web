@@ -40,6 +40,7 @@
         <BookingPage v-if="currentPage === 'bookings'" :form="form" />
         <StaffManagement v-else-if="currentPage === 'staff'" />
         <PriceManager v-else-if="currentPage === 'priceManager'" :form="form" />
+        <AccountManagement v-else-if="currentPage === 'accountManagement'" :form="form" />
         
         <div v-else class="flex items-center justify-center h-96 opacity-30">
             <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
@@ -55,6 +56,7 @@ import { ref, reactive } from 'vue'
 import BookingPage from './components/BookingPage.vue'
 import StaffManagement from './components/StaffManagement.vue'
 import PriceManager from './components/PriceManager.vue'
+import AccountManagement from './components/AccountManagement.vue'
 import TheToast from './components/TheToast.vue'
 
 const isDark = ref(false)
@@ -67,6 +69,7 @@ const menu = [
   { id: 'accounts', label: 'Bank Info', icon: '💳' },
   { id: 'staff', label: 'Staff Management', icon: 'o.o' },
   { id: 'priceManager', label: 'Price Manager', icon: '$' },
+  { id: 'accountManagement', label: 'Account Management', icon: '£' },
   { id: 'settings', label: 'Settings', icon: '⚙️' }
 ]
 
@@ -75,7 +78,7 @@ const form = reactive({
   name: '',
   surname: '',
   phone: '',
-  staffName: '',
+  staffId: -1,
   rooms: [],
   total: 0,
   received: 0

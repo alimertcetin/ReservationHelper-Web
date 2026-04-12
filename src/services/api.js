@@ -16,6 +16,15 @@ export const bookingService = {
   createStaff: (data) => api.post('/staff', data),
   updateStaff: (id, data) => api.put(`/staff/${id}`, data),
   deleteStaff: (id) => api.delete(`/staff/${id}`),
+
+  // Account
+  getOwners: () => api.get('/accounts/owners'),
+  createOwner: (data) => api.post('/accounts/owners', data),
+  deleteOwner: (id) => api.delete(`/accounts/owners/${id}`),
+  getAccounts: () => api.get('/accounts'),
+  createAccount: (data) => api.post('/accounts', data),
+  updateAccount: (id, data) => api.put(`/accounts/${id}`, data),
+  deleteAccount: (id) => api.delete(`/accounts/${id}`),
   
   // add new staff
   addStaff: (staff) => api.post('/staff', staff),
