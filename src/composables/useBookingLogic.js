@@ -29,7 +29,6 @@ export function useBookingLogic(form, roomTypes) {
 
   const addRoom = (roomTypes) => {
     const lastRoom = form.rooms.at(-1);
-    console.log(JSON.stringify(lastRoom, null, 2));
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
