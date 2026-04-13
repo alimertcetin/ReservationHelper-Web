@@ -40,6 +40,9 @@ export const bookingService = {
   getPriceRules: () => api.get('/prices/all'),
   
   getRoomTypes: () => api.get('/roomTypes/all'),
+  createRoomType: (data) => api.post('/roomTypes', data),
+  updateRoomType: (id, data) => api.put(`/roomTypes/${id}`, data),
+  deleteRoomType: (id) => api.delete(`/roomTypes/${id}`),
   
   // Update this to match your PUT /sync endpoint
   syncPriceRules: (rules) => api.put('/prices/sync', { rules }),

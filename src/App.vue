@@ -40,7 +40,8 @@
         <BookingPage v-if="currentPage === 'bookings'" :form="form" />
         <StaffManagement v-else-if="currentPage === 'staff'" />
         <PriceManager v-else-if="currentPage === 'priceManager'" :form="form" />
-        <AccountManagement v-else-if="currentPage === 'accountManagement'" :form="form" />
+        <AccountManagement v-else-if="currentPage === 'accounts'" :form="form" />
+        <RoomTypeManagement v-else-if="currentPage === 'rooms'" :form="form" />
         
         <div v-else class="flex items-center justify-center h-96 opacity-30">
             <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
@@ -57,6 +58,7 @@ import BookingPage from './components/BookingPage.vue'
 import StaffManagement from './components/StaffManagement.vue'
 import PriceManager from './components/PriceManager.vue'
 import AccountManagement from './components/AccountManagement.vue'
+import RoomTypeManagement from './components/RoomTypeManagement.vue'
 import TheToast from './components/TheToast.vue'
 
 const isDark = ref(false)
@@ -66,10 +68,9 @@ const currentPage = ref('bookings')
 const menu = [
   { id: 'bookings', label: 'New Booking', icon: '🏨' },
   { id: 'rooms', label: 'Room List', icon: '🛏️' },
-  { id: 'accounts', label: 'Bank Info', icon: '💳' },
-  { id: 'staff', label: 'Staff Management', icon: 'o.o' },
-  { id: 'priceManager', label: 'Price Manager', icon: '$' },
-  { id: 'accountManagement', label: 'Account Management', icon: '£' },
+  { id: 'accounts', label: 'Accounts', icon: '💳' },
+  { id: 'staff', label: 'Staff Management', icon: '👨🏻‍💼' },
+  { id: 'priceManager', label: 'Price Manager', icon: '📅' },
   { id: 'settings', label: 'Settings', icon: '⚙️' }
 ]
 

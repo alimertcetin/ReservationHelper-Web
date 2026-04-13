@@ -290,7 +290,7 @@ onMounted(async () => {
 
     if (props.form.rooms.length === 0 || (props.form.rooms.length === 1 && props.form.rooms[0].id === null)) {
       // Clear any placeholder room and add a fresh one with the correct roomTypeId
-      props.form.rooms = []; 
+      props.form.rooms = [];
       addRoom();
     }
 
