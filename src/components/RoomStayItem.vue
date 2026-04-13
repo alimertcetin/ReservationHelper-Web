@@ -118,13 +118,11 @@ const applySuggested = () => {
 }
 
 const fetchSuggestedPrice = async () => {
-  console.log(props.room.checkIn, props.room.checkOut, props.room.roomTypeId)
   if (!props.room.checkIn || !props.room.checkOut || !props.room.roomTypeId)
   {
     return;
   }
 
-  console.log("fetching suggested price");
   try {
     priceError.value = false;
     const response = await bookingService.getSuggestedPrice({
