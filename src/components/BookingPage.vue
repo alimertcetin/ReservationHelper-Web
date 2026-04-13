@@ -64,7 +64,22 @@
           </div>
         </section>
 
+
+
           <div class="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl grid grid-cols-4 gap-6">
+
+            <div v-if="accounts.length > 0" class="md:col-span-4 space-y-1">
+              <label class="text-[9px] font-bold uppercase opacity-40">Account / Payment Method</label>
+              
+              <select v-model="selectedAccount.id" class="modern-input">
+                <option v-for="account in accounts" :key="account.id" :value="account.id">
+                  {{ account.owner.name }} - {{ account.title }}
+                </option>
+              </select>
+            </div>
+
+            <div v-else class="md:col-span-4 animate-pulse bg-slate-100 h-10 rounded-xl"></div>
+
             <div>
               <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Total Amount</label>
               <input type="number" v-model.number="form.total" class="financial-input">
@@ -80,12 +95,13 @@
               </div>
             </div>
 
-          <div class="flex justify-end">
-            <button @click="calculateTotalFromRooms" class="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-1 rounded-xl hover:scale-115 transition-all">
-              🔄 Sync Prices
-            </button>
+            <div class="flex justify-end">
+              <button @click="calculateTotalFromRooms" class="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-1 rounded-xl hover:scale-115 transition-all">
+                🔄 Sync Prices
+              </button>
+            </div>
           </div>
-          </div>
+
 
           <div class="flex flex-wrap gap-4">
             <button @click="updateReservation" class="flex-1 min-w-[200px] bg-teal-500 hover:bg-teal-600 hover:scale-102 text-white font-bold p-4 rounded-xl shadow-lg transition-all">
@@ -153,6 +169,7 @@ import ActivityCard from './ActivityCard.vue'
 import CustomModal from './CustomModal.vue'
 const roomTypes = ref([]); // Now populated with objects: { id, name }
 const staffMembers = ref([]);
+const accounts = ref([]);
 
 const props = defineProps(['form'])
 const emit = defineEmits(['save'])
@@ -165,7 +182,7 @@ const recent = ref([])
 const currentReservationId = ref(null)
 const modalActive = ref(false)
 const selectedResData = ref(null)
-
+const selectedAccount = ref(null)
 
 
 const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form, roomTypes);
@@ -176,17 +193,18 @@ const filteredRecent = computed(() => {
   return recent.value.filter(res => (res.name + " " + res.surname).toLowerCase().includes(q))
 })
 
-const handleCardClick = (res) => {
-  selectedResData.value = res;
+const handleCardClick = (reservation) => {
+  selectedResData.value = reservation;
   modalActive.value = true;
 }
 
 const confirmLoad = () => {
   if (selectedResData.value) {
     currentReservationId.value = selectedResData.value.id;
+
     loadReservation(selectedResData.value);
     modalActive.value = false;
-    showToast("Form Loaded", `${selectedResData.value.name}'s data is ready.`);
+    showToast("Form Loaded", `${selectedResData.value.guest.firstName} ${selectedResData.value.guest.lastName}'s data is ready.`);
   }
 };
 
@@ -257,15 +275,18 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 
 onMounted(async () => {
   try {
-    const [recentRes, staffRes, roomTypeRes] = await Promise.all([
+    const [recentRes, staffRes, roomTypeRes, accountsRes] = await Promise.all([
       bookingService.getRecentBookings(),
       bookingService.getStaff(),
       bookingService.getRoomTypes(),
+      bookingService.getAccounts(),
     ]);
 
     recent.value = recentRes.data;
     staffMembers.value = staffRes.data;
     roomTypes.value = roomTypeRes.data;
+    accounts.value = accountsRes.data;
+    selectedAccount.value = accounts.value[0];
 
     if (props.form.rooms.length === 0 || (props.form.rooms.length === 1 && props.form.rooms[0].id === null)) {
       // Clear any placeholder room and add a fresh one with the correct roomTypeId
