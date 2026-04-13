@@ -6,7 +6,7 @@
     <div class="flex justify-between items-start">
       <div class="flex-1 min-w-0">
         <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm truncate group-hover:text-teal-500 transition-colors">
-          {{ reservation.name }} {{ reservation.surname }}
+          {{ reservation.guest.firstName }} {{ reservation.guest.lastName }}
         </h4>
         
         <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1">
@@ -14,14 +14,17 @@
             {{ reservation.rooms.length }} STAYS
           </span>
           <span class="truncate">
-            {{ reservation.rooms?.[0]?.type || 'No Room Selected' }}
+            {{ reservation.rooms?.[0]?.roomType?.name || 'No Room Selected' }}
             <span v-if="reservation.rooms?.length > 1">...</span>
           </span>
         </p>
       </div>
       
       <span class="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg font-medium">
-        {{ formatTime(reservation.time) }}
+        {{ formatTime(reservation.updatedAt) }}
+      </span>
+      <span class="text-[9px] bg-green-100 dark:bg-green-700 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg font-medium">
+        {{ formatTime(reservation.createdAt) }}
       </span>
     </div>
     
