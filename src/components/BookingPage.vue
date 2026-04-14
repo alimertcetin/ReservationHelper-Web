@@ -73,7 +73,7 @@
               
               <select v-model="selectedAccount.id" class="modern-input">
                 <option v-for="account in accounts" :key="account.id" :value="account.id">
-                  {{ account.owner.name }} - {{ account.title }}
+                  {{ account.owner.name }} - {{ account.displayName }}
                 </option>
               </select>
             </div>

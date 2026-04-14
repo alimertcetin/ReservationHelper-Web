@@ -5,45 +5,45 @@ const api = axios.create({
 });
 
 export const bookingService = {
-  // Save new or update existing
-  saveReservation: (payload) => api.post('/reservations', payload),
+  // --- RESERVATIONS ---
+  // payload can be new reservation or update data
+  createReservation: (payload) => api.post('/reservations', payload),
+  updateReservation: (id, data) => api.put(`/reservations/${id}`, data),
   
-  // Search guests for the search bar
+  // Get by range: bookingService.getReservations('2026-01-01', '2026-01-31')
+  getReservations: (start, end) => api.get('/reservations', { params: { start, end } }),
+  getRecentBookings: () => api.get('/reservations/recent'),
+  
+  // Payments
+  addPayment: (resId, paymentData) => api.post(`/reservations/${resId}/pay`, paymentData),
+
+  // --- GUESTS ---
   searchGuests: (query) => api.get(`/guests/search?q=${query}`),
   
-  // Get all staff for the datalist
+  // --- STAFF ---
   getStaff: () => api.get('/staff'),
   createStaff: (data) => api.post('/staff', data),
   updateStaff: (id, data) => api.put(`/staff/${id}`, data),
   deleteStaff: (id) => api.delete(`/staff/${id}`),
 
-  // Account
+  // --- ACCOUNTS & OWNERS ---
   getOwners: () => api.get('/accounts/owners'),
   createOwner: (data) => api.post('/accounts/owners', data),
   deleteOwner: (id) => api.delete(`/accounts/owners/${id}`),
+  
   getAccounts: () => api.get('/accounts'),
   createAccount: (data) => api.post('/accounts', data),
   updateAccount: (id, data) => api.put(`/accounts/${id}`, data),
   deleteAccount: (id) => api.delete(`/accounts/${id}`),
   
-  // add new staff
-  addStaff: (staff) => api.post('/staff', staff),
-  
-  // Get dynamic price from the rules engine
-  getSuggestedPrice: (params) => api.get('/prices/suggest', { params }),
-  
-  // Get recent bookings for the Activity Sidebar
-  getRecentBookings: () => api.get('/reservations/recent'),
-
-  createPriceRule: (data) => api.post('/prices', data),
-  deletePriceRule: (id) => api.delete(`/prices/${id}`),
-  getPriceRules: () => api.get('/prices/all'),
-  
+  // --- ROOM TYPES ---
   getRoomTypes: () => api.get('/roomTypes/all'),
   createRoomType: (data) => api.post('/roomTypes', data),
   updateRoomType: (id, data) => api.put(`/roomTypes/${id}`, data),
   deleteRoomType: (id) => api.delete(`/roomTypes/${id}`),
   
-  // Update this to match your PUT /sync endpoint
+  // --- PRICING ---
+  getSuggestedPrice: (params) => api.get('/prices/suggest', { params }),
+  getPriceRules: () => api.get('/prices/all'),
   syncPriceRules: (rules) => api.put('/prices/sync', { rules }),
 };

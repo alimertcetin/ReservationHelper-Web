@@ -60,7 +60,7 @@
                 <button @click="deleteAccount(acc.id)" class="opacity-0 group-hover:opacity-100 text-rose-500 text-[10px] font-bold uppercase transition-opacity">Delete</button>
               </div>
 
-              <p class="font-bold dark:text-white text-sm">{{ acc.title }}</p>
+              <p class="font-bold dark:text-white text-sm">{{ acc.displayName }}</p>
               
               <div v-if="acc.iban" class="mt-3 p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center group/iban">
                 <code class="text-[10px] font-mono text-slate-500 truncate mr-2">{{ acc.iban }}</code>
@@ -103,7 +103,7 @@
           </div>
           <div>
             <label class="text-[10px] font-bold uppercase opacity-50">Display Title</label>
-            <input v-model="newAcc.title" class="modern-input" placeholder="e.g. Ziraat Main Branch">
+            <input v-model="newAcc.displayName" class="modern-input" placeholder="e.g. Ziraat Main Branch">
           </div>
           <div v-if="newAcc.type === 'BANK'">
             <label class="text-[10px] font-bold uppercase opacity-50">IBAN Number</label>
@@ -130,7 +130,7 @@ const showOwnerModal = ref(false);
 const showAccModal = ref(false);
 
 const newOwner = ref({ name: '', address: '' });
-const newAcc = ref({ title: '', type: 'BANK', iban: '' });
+const newAcc = ref({ displayName: '', type: '', iban: '' });
 
 const fetchOwners = async () => {
   try {
@@ -172,18 +172,20 @@ const deleteOwner = async (id) => {
 };
 
 const openAccountModal = () => {
-  newAcc.value = { title: '', type: 'BANK', iban: '' };
+  newAcc.value = { displayName: '', type: 'BANK', iban: '' };
   showAccModal.value = true;
 };
 
 const saveAccount = async () => {
-  if (!newAcc.value.title) return showToast("Required", "Title is necessary", "error");
+  if (!newAcc.value.displayName) return showToast("Required", "Title is necessary", "error");
   try {
     await bookingService.createAccount({ ...newAcc.value, ownerId: selectedOwner.value.id });
     showToast("Success", "Account added.");
     showAccModal.value = false;
     await fetchOwners();
-  } catch (err) { showToast("Error", "Failed to save account", "error"); }
+  } catch (err) {
+    showToast("Error", "Failed to save account. " + err, "error");
+  }
 };
 
 const deleteAccount = async (id) => {
