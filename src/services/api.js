@@ -27,7 +27,7 @@ export const bookingService = {
   deleteStaff: (id) => api.delete(`/staff/${id}`),
 
   // --- ACCOUNTS & OWNERS ---
-  getOwners: () => api.get('/accounts/owners'),
+  getOwners: () => api.get('/accounts/owners?includeInactive=true'),
   createOwner: (data) => api.post('/accounts/owners', data),
   deleteOwner: (id) => api.delete(`/accounts/owners/${id}`),
   
