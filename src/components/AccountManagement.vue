@@ -50,24 +50,40 @@
 
           <div v-if="selectedOwner.accounts?.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div v-for="acc in selectedOwner.accounts" :key="acc.id" 
-                 class="group relative p-5 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-3xl hover:border-teal-500/50 transition-all">
-              
-              <div class="flex justify-between items-start mb-2">
+             :class="[
+               'group relative p-5 border rounded-3xl transition-all',
+               // Active Styles
+               acc.isActive !== false 
+                 ? 'bg-white dark:bg-slate-800/40 border-slate-100 dark:border-slate-700/50 hover:border-teal-500/50' 
+                 : 'bg-slate-100 dark:bg-slate-900 border-dashed border-slate-300 dark:border-slate-700 opacity-60 grayscale'
+             ]">
+          
+          <div class="flex justify-between items-start mb-2">
+            <div class="flex items-center gap-2">
                 <span :class="acc.type === 'CASH' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'" 
                       class="text-[8px] font-bold px-2 py-1 rounded-lg uppercase">
                   {{ acc.type }}
                 </span>
-                <button @click="deleteAccount(acc.id)" class="opacity-0 group-hover:opacity-100 text-rose-500 text-[10px] font-bold uppercase transition-opacity">Delete</button>
+                
+                <span v-if="acc.isActive === false" class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
+                  (Inactive)
+                </span>
               </div>
-
-              <p class="font-bold dark:text-white text-sm">{{ acc.displayName }}</p>
               
-              <div v-if="acc.iban" class="mt-3 p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center group/iban">
-                <code class="text-[10px] font-mono text-slate-500 truncate mr-2">{{ acc.iban }}</code>
-                <button @click="copyText(acc.iban)" class="text-[10px] text-teal-500 font-bold flex-shrink-0">Copy</button>
+              <div class="flex gap-2">
+                 <button @click="editAccount(acc)" class="opacity-0 group-hover:opacity-70 hover:opacity-100 text-teal-500 text-[10px] font-bold uppercase transition-opacity">Edit</button>
+                 <button @click="deleteAccount(acc.id)" class="opacity-0 group-hover:opacity-70 hover:opacity-100 text-rose-500 text-[10px] font-bold uppercase transition-opacity">Delete</button>
               </div>
             </div>
+
+            <p class="font-bold dark:text-white text-sm">{{ acc.displayName }}</p>
+            
+            <div v-if="acc.iban" class="mt-3 p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center group/iban">
+              <code class="text-[10px] font-mono text-slate-500 truncate mr-2">{{ acc.iban }}</code>
+              <button @click="copyText(acc.iban)" class="opacity-70 hover:opacity-100 text-[10px] text-teal-500 font-bold flex-shrink-0">Copy</button>
+            </div>
           </div>
+        </div>
           <div v-else class="h-64 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
             <p class="text-sm italic">No accounts linked to this owner yet.</p>
           </div>
@@ -94,7 +110,7 @@
       </template>
     </CustomModal>
 
-    <CustomModal :show="showAccModal" title="Add Payment Destination" @confirm="saveAccount" @cancel="showAccModal = false">
+    <CustomModal :show="showAccModal" :title="isEditingAccount ? 'Update Account' : 'Add Payment Destination'" @confirm="saveAccount" @cancel="showAccModal = false">
       <template #message>
         <div class="space-y-4 text-left">
           <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
@@ -109,6 +125,15 @@
             <label class="text-[10px] font-bold uppercase opacity-50">IBAN Number</label>
             <input v-model="newAcc.iban" class="modern-input font-mono" placeholder="TR00...">
           </div>
+          <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+  <span class="text-[10px] font-bold uppercase opacity-50">Account Status</span>
+  <div class="flex items-center gap-2">
+    <span class="text-[10px] font-bold" :class="newAcc.isActive ? 'text-teal-500' : 'text-slate-400'">
+      {{ newAcc.isActive ? 'ACTIVE' : 'INACTIVE' }}
+    </span>
+    <input type="checkbox" v-model="newAcc.isActive" class="accent-teal-500 w-4 h-4">
+  </div>
+</div>
         </div>
       </template>
     </CustomModal>
@@ -130,7 +155,9 @@ const showOwnerModal = ref(false);
 const showAccModal = ref(false);
 
 const newOwner = ref({ name: '', address: '' });
-const newAcc = ref({ displayName: '', type: '', iban: '' });
+const isEditingAccount = ref(false); // Track if we are editing
+const editingAccountId = ref(null); // Track which ID to update
+const newAcc = ref({ displayName: '', type: 'BANK', iban: '' });
 
 const fetchOwners = async () => {
   try {
@@ -172,19 +199,46 @@ const deleteOwner = async (id) => {
 };
 
 const openAccountModal = () => {
-  newAcc.value = { displayName: '', type: 'BANK', iban: '' };
+  isEditingAccount.value = false;
+  newAcc.value = { displayName: '', type: 'BANK', iban: '', isActive: true }; // Default to true
+  showAccModal.value = true;
+};
+
+const editAccount = (acc) => {
+  isEditingAccount.value = true;
+  editingAccountId.value = acc.id;
+  newAcc.value = { 
+    displayName: acc.displayName, 
+    type: acc.type, 
+    iban: acc.iban || '' 
+  };
   showAccModal.value = true;
 };
 
 const saveAccount = async () => {
   if (!newAcc.value.displayName) return showToast("Required", "Title is necessary", "error");
+  
   try {
-    await bookingService.createAccount({ ...newAcc.value, ownerId: selectedOwner.value.id });
-    showToast("Success", "Account added.");
+    if (isEditingAccount.value) {
+      // Update Logic
+      await bookingService.updateAccount(editingAccountId.value, { 
+        ...newAcc.value, 
+        ownerId: selectedOwner.value.id 
+      });
+      showToast("Updated", "Account details updated.");
+    } else {
+      // Create Logic
+      await bookingService.createAccount({ 
+        ...newAcc.value, 
+        ownerId: selectedOwner.value.id 
+      });
+      showToast("Success", "Account added.");
+    }
+    
     showAccModal.value = false;
     await fetchOwners();
   } catch (err) {
-    showToast("Error", "Failed to save account. " + err, "error");
+    showToast("Error", "Operation failed. " + err, "error");
   }
 };
 
