@@ -26,6 +26,11 @@ export const bookingService = {
   updateStaff: (id, data) => api.put(`/staff/${id}`, data),
   deleteStaff: (id) => api.delete(`/staff/${id}`),
 
+  // --- POLICIES ---
+  getPolicies: () => api.get('/policies'),
+  createPolicy: (data) => api.post('/policies', data),
+  deletePolicy: (id) => api.delete(`/policies/${id}`),
+
   // --- ACCOUNTS & OWNERS ---
   getOwners: () => api.get('/accounts/owners?includeInactive=true'),
   createOwner: (data) => api.post('/accounts/owners', data),
@@ -43,7 +48,14 @@ export const bookingService = {
   deleteRoomType: (id) => api.delete(`/roomTypes/${id}`),
   
   // --- PRICING ---
-  getSuggestedPrice: (params) => api.get('/prices/suggest', { params }),
+  // (Frontend passes adults/children/overrides)
+  getSuggestedPrice: (params) => api.get('/prices/suggest', { 
+    params: {
+      ...params,
+      // Stringify overrides if they exist so they pass through URL params correctly
+      overrides: params.overrides ? JSON.stringify(params.overrides) : undefined
+    } 
+  }),
   getPriceRules: () => api.get('/prices/all'),
   syncPriceRules: (rules) => api.put('/prices/sync', { rules }),
 };

@@ -57,6 +57,7 @@
                 :key="room.id"
                 :room="room" 
                 :roomTypes="roomTypes"
+                :pricePolicies="pricePolicies" 
                 :canRemove="form.rooms.length > 1"
                 @remove="removeRoom(index)"
               />
@@ -170,6 +171,7 @@ import CustomModal from './CustomModal.vue'
 const roomTypes = ref([]); // Now populated with objects: { id, name }
 const staffMembers = ref([]);
 const accounts = ref([]);
+const pricePolicies = ref([]);
 
 const props = defineProps(['form'])
 const emit = defineEmits(['save'])
@@ -275,11 +277,12 @@ const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currenc
 
 onMounted(async () => {
   try {
-    const [recentRes, staffRes, roomTypeRes, accountsRes] = await Promise.all([
+    const [recentRes, staffRes, roomTypeRes, accountsRes, policiesRes] = await Promise.all([
       bookingService.getRecentBookings(),
       bookingService.getStaff(),
       bookingService.getRoomTypes(),
       bookingService.getAccounts(),
+      bookingService.getPolicies()
     ]);
 
     recent.value = recentRes.data;
@@ -287,6 +290,7 @@ onMounted(async () => {
     roomTypes.value = roomTypeRes.data;
     accounts.value = accountsRes.data;
     selectedAccount.value = accounts.value[0];
+    pricePolicies.value = policiesRes.data;
 
     if (props.form.rooms.length === 0 || (props.form.rooms.length === 1 && props.form.rooms[0].id === null)) {
       // Clear any placeholder room and add a fresh one with the correct roomTypeId
@@ -296,7 +300,7 @@ onMounted(async () => {
 
   } catch (err) {
     console.log(err);
-    showToast("Error", "Failed to load initial data", "error");
+    showToast("Error", "Failed to load initial data. " + err?.response?.data?.error, "error");
   }
 
 })

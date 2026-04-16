@@ -42,6 +42,7 @@
         <PriceManager v-else-if="currentPage === 'priceManager'" :form="form" />
         <AccountManagement v-else-if="currentPage === 'accounts'" :form="form" />
         <RoomTypeManagement v-else-if="currentPage === 'rooms'" :form="form" />
+        <PricePolicyManagement v-else-if="currentPage === 'pricePolicy'" :form="form" />
         
         <div v-else class="flex items-center justify-center h-96 opacity-30">
             <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
@@ -59,6 +60,7 @@ import StaffManagement from './components/StaffManagement.vue'
 import PriceManager from './components/PriceManager.vue'
 import AccountManagement from './components/AccountManagement.vue'
 import RoomTypeManagement from './components/RoomTypeManagement.vue'
+import PricePolicyManagement from './components/PricePolicyManagement.vue'
 import TheToast from './components/TheToast.vue'
 
 const isDark = ref(false)
@@ -71,6 +73,7 @@ const menu = [
   { id: 'accounts', label: 'Accounts', icon: '💳' },
   { id: 'staff', label: 'Staff Management', icon: '👨🏻‍💼' },
   { id: 'priceManager', label: 'Price Manager', icon: '📅' },
+  { id: 'pricePolicy', label: 'Price Policies', icon: '$' },
   { id: 'settings', label: 'Settings', icon: '⚙️' }
 ]
 
