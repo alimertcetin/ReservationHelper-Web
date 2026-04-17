@@ -58,4 +58,9 @@ export const bookingService = {
   }),
   getPriceRules: () => api.get('/prices/all'),
   syncPriceRules: (rules) => api.put('/prices/sync', { rules }),
+
+  // --- TEMPLATES ---
+  getTemplates: () => api.get('/templates'),
+  saveTemplate: (data) => api.post('/templates', data),
+  deleteTemplate: (id) => api.delete(`/templates/${id}`),
 };
