@@ -121,32 +121,47 @@ const filterCat = ref('GUEST');
 // FLAT VARIABLE SCHEMA (Matching your form object)
 const variableGroups = [
   { label: 'Guest Info', vars: ['name', 'surname', 'phone'] },
-  { label: 'Financials', vars: ['total', 'received', 'balance'] },
+  { label: 'Financials', vars: ['total', 'received', 'balance', 'account.displayName', 'account.type', 'account.iban'] },
   { label: 'Staff', vars: ['staffName'] },
   { label: 'Loop Items', vars: ['rooms'] }
 ];
 
 // PREVIEW MOCKUP (Matching your form structure)
 const dummyData = {
-  name: 'Murat',
-  surname: 'Aksoy',
-  phone: '532 000 00 00',
-  staffName: 'Ayşe Kaya',
+  name: "Joe",
+  surname: "BLOGGS",
+  phone: "5939939393",
+  staffName: "John",
   rooms: [
-    { type: 'Deluxe Suite', checkIn: '2026-05-10', checkOut: '2026-05-12', adults: 2, children: 1, price: 4000 },
-    { type: 'Eco Room', checkIn: '2026-05-12', checkOut: '2026-05-13', adults: 1, children: 0, price: 1400 }
-  ],
-  account:{
-    name: "Sanal POS",
-    owner: {
-      name: "Necmi ÇALIŞKAN",
+    {
+      type: "Deluxe",
+      checkIn: "2026-04-18",
+      checkOut: "2026-04-19",
+      adults: 2,
+      children: 0,
+      price: 8000,
     },
-    type: "BANK",
-    iban: "00000",
-  },
-  total: 5400,
+    {
+      type: "Standard",
+      checkIn: "2026-04-19",
+      checkOut: "2026-04-20",
+      adults: 1,
+      children: 3,
+      price: 8000,
+    }
+  ],
+  total: 16000,
   received: 2000,
-  balance: 3400,
+  balance: 14000,
+  account: {
+    displayName: "Rich Bank Online",
+    type: "BANK",
+    iban: "0",
+    owner: {
+      name: "Richard Roe",
+    },
+  },
+  method: "BANK_TRANSFER",
 };
 
 // --- CRUD LOGIC ---
@@ -176,7 +191,7 @@ const createNewTemplate = () => {
 const saveTemplate = async () => {
   try {
     const res = await bookingService.saveTemplate(selectedTemplate.value);
-    showToast("Success", "Template deployed successfully");
+    showToast("Success", "Template saved successfully");
     await fetchTemplates();
     // Re-select from list to get IDs if it was new
     const saved = templates.value.find(t => t.name === selectedTemplate.value.name);

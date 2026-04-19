@@ -11,7 +11,6 @@
               ID: #{{ currentReservationId }} — {{ form.name }}
             </p>
           </div>
-          
           <button @click="resetForm" class="text-xs bg-slate-100 dark:bg-slate-800 hover:text-rose-500 p-2 px-3 rounded-lg transition-colors flex items-center gap-2">
             <span>✕</span> Clear Form
           </button>
@@ -20,12 +19,10 @@
         <div class="space-y-8">
           <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
             <label class="text-[10px] font-bold uppercase opacity-60 mb-2 block">Handled By (Staff)</label>
-            <div class="flex gap-2">
-              <input v-model="form.staffName" list="staffList" class="modern-input" placeholder="Type or select staff name...">
-              <datalist id="staffList">
-                <option v-for="user in staffMembers" :key="user.id" :value="user.name" />
-              </datalist>
-            </div>
+            <input v-model="form.staffName" list="staffList" class="modern-input" placeholder="Type or select staff name...">
+            <datalist id="staffList">
+              <option v-for="user in staffMembers" :key="user.id" :value="user.name" />
+            </datalist>
           </div>
 
           <section class="space-y-4">
@@ -45,71 +42,101 @@
               </div>
             </div>
           </section>
-          <section class="space-y-3"> <div class="flex justify-between items-center px-1">
-            <h3 class="font-bold text-slate-500 uppercase text-[10px] tracking-widest">Room Stays</h3>
-            <button @click="addRoom" class="text-teal-500 text-[10px] font-bold hover:underline">+ Add Another</button>
-          </div>
 
-          <div class="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
-            <TransitionGroup name="list">
-              <RoomStayItem 
-                v-for="(room, index) in form.rooms" 
-                :key="room.id"
-                :room="room" 
-                :roomTypes="roomTypes"
-                :pricePolicies="pricePolicies" 
-                :canRemove="form.rooms.length > 1"
-                @remove="removeRoom(index)"
-              />
-            </TransitionGroup>
-          </div>
-        </section>
-
-
-
-          <div class="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl grid grid-cols-4 gap-6">
-
-            <div v-if="accounts.length > 0" class="md:col-span-4 space-y-1">
-              <label class="text-[9px] font-bold uppercase opacity-40">Account / Payment Method</label>
-              
-              <select v-model="selectedAccount.id" class="modern-input">
-                <option v-for="account in accounts" :key="account.id" :value="account.id">
-                  {{ account.owner.name }} - {{ account.displayName }}
-                </option>
-              </select>
+          <section class="space-y-3">
+            <div class="flex justify-between items-center px-1">
+              <h3 class="font-bold text-slate-500 uppercase text-[10px] tracking-widest">Room Stays</h3>
+              <button @click="addRoom" class="text-teal-500 text-[10px] font-bold hover:underline">+ Add Another</button>
             </div>
-
-            <div v-else class="md:col-span-4 animate-pulse bg-slate-100 h-10 rounded-xl"></div>
-
-            <div>
-              <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Total Amount</label>
-              <input type="number" v-model.number="form.total" class="financial-input">
+            <div class="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
+              <TransitionGroup name="list">
+                <RoomStayItem 
+                  v-for="(room, index) in form.rooms" 
+                  :key="room.renderKey || index"
+                  :room="room" 
+                  :roomTypes="roomTypes"
+                  :pricePolicies="pricePolicies" 
+                  :canRemove="form.rooms.length > 1"
+                  @remove="removeRoom(index)"
+                />
+              </TransitionGroup>
             </div>
-            <div>
-              <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Received</label>
-              <input type="number" v-model.number="form.received" class="financial-input text-emerald-500">
-            </div>
-            <div>
-              <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Balance</label>
-              <div :class="balance > 0 ? 'text-rose-500' : 'text-emerald-500'" class="text-xl font-mono pt-1">
-                {{ formatCurrency(balance) }}
+          </section>
+
+          <div class="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-3xl space-y-6 border border-slate-100 dark:border-slate-800">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <label class="text-[9px] font-bold uppercase opacity-40">Target Account</label>
+                <select v-model="selectedAccountId" class="modern-input">
+                  <option v-for="account in accounts" :key="account.id" :value="account.id">
+                    {{ account.owner?.name }} - {{ account.displayName }} ({{ account.type }})
+                  </option>
+                </select>
+              </div>
+              <div class="space-y-1">
+                <label class="text-[9px] font-bold uppercase opacity-40">Payment Method</label>
+                <select v-model="form.paymentMethod" class="modern-input">
+                  <option v-for="method in filteredMethods" :key="method" :value="method">
+                    {{ method.replace('_', ' ') }}
+                  </option>
+                </select>
               </div>
             </div>
 
-            <div class="flex justify-end">
-              <button @click="calculateTotalFromRooms" class="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-1 rounded-xl hover:scale-115 transition-all">
-                🔄 Sync Prices
-              </button>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 items-end">
+              <div>
+                <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Total Amount</label>
+                <input type="number" v-model.number="form.total" class="financial-input">
+              </div>
+              <div>
+                <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Received</label>
+                <input type="number" v-model.number="form.received" class="financial-input text-emerald-500">
+              </div>
+              <div class="hidden md:block">
+                <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Balance</label>
+                <div :class="balance > 0 ? 'text-rose-500' : 'text-emerald-500'" class="text-xl font-mono pt-1">
+                  {{ formatCurrency(balance) }}
+                </div>
+              </div>
+              <div class="flex justify-end">
+                <button @click="calculateTotalFromRooms" class="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-2 rounded-xl hover:scale-105 transition-all">
+                  🔄 Sync Prices
+                </button>
+              </div>
             </div>
           </div>
 
-
-          <div class="flex flex-wrap gap-4">
-            <button @click="updateReservation" class="flex-1 min-w-[200px] bg-teal-500 hover:bg-teal-600 hover:scale-102 text-white font-bold p-4 rounded-xl shadow-lg transition-all">
+          <div class="flex flex-wrap gap-4 mt-4">
+            <button @click="handleSave" class="flex-1 min-w-[200px] bg-teal-500 hover:bg-teal-600 text-white font-bold p-4 rounded-xl shadow-lg transition-all active:scale-95">
               {{ currentReservationId ? '💾 Update Changes' : '🏨 Confirm Reservation' }}
             </button>
-            <button @click="generateMessage('guest')" class="btn-icon bg-emerald-500 hover:bg-emerald-600 hover:scale-105 transition-all">👤 Guest Msg</button>
-            <button @click="generateMessage('reception')" class="btn-icon bg-slate-700 hover:bg-slate-800 hover:scale-105 transition-all">🛎️ Staff Msg</button>
+
+            <div class="relative">
+              <button @click="showTemplateDropdown = !showTemplateDropdown" 
+                      class="btn-icon bg-emerald-500 hover:bg-emerald-600 h-full">
+                📱 Send Message ▾
+              </button>
+              
+              <div v-if="showTemplateDropdown" 
+                   class="absolute bottom-full mb-2 right-0 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50">
+                <div class="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                  <span class="text-[10px] font-black uppercase opacity-50">Select Template</span>
+                </div>
+                <div class="max-h-64 overflow-y-auto custom-scrollbar">
+                  <button v-for="tpl in availableTemplates" :key="tpl.id" 
+                          @click="openPreview(tpl)"
+                          class="w-full text-left p-4 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b last:border-none border-slate-50 dark:border-slate-800">
+                    <div class="flex justify-between items-center">
+                      <span class="font-bold text-xs">{{ tpl.name }}</span>
+                      <span :class="tpl.category === 'GUEST' ? 'text-emerald-500 border-emerald-500/30' : 'text-amber-500 border-amber-500/30'" 
+                            class="text-[8px] font-black border px-1.5 py-0.5 rounded uppercase">
+                        {{ tpl.category }}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -118,10 +145,10 @@
         <div class="sticky top-4 flex flex-col gap-4 h-[calc(100vh-2rem)]">
           <div class="px-2 space-y-3">
             <h3 class="font-bold text-lg">Recent Activity</h3>
-            <input v-model="searchQuery" placeholder="Search..." class="modern-input !rounded-xl text-sm">
+            <input v-model="searchQuery" placeholder="Search by name..." class="modern-input !rounded-xl text-sm">
           </div>
 
-          <div class="space-y-3 overflow-y-auto px-2 custom-scrollbar">
+          <div class="space-y-3 overflow-y-auto px-2 custom-scrollbar flex-1">
             <ActivityCard 
               v-for="res in filteredRecent" 
               :key="res.id" 
@@ -132,11 +159,18 @@
         </div>
       </div>
 
-      <CustomModal :show="showPreviewModal" title="Message Preview" confirmText="Copy" @confirm="copyToClipboard" @cancel="showPreviewModal = false">
+      <CustomModal 
+        :show="showPreviewModal" 
+        title="Message Preview" 
+        confirmText="Open WhatsApp" 
+        @confirm="confirmAndSend" 
+        @cancel="showPreviewModal = false"
+      >
         <template #message>
-          <div class="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-            <pre class="whitespace-pre-wrap font-sans text-sm leading-relaxed">{{ generatedText }}</pre>
+          <div class="bg-slate-950 text-emerald-400 p-6 rounded-2xl font-mono text-xs leading-relaxed border border-emerald-500/20 shadow-inner max-h-[400px] overflow-y-auto">
+            <pre class="whitespace-pre-wrap">{{ generatedText }}</pre>
           </div>
+          <p class="mt-3 text-[10px] text-slate-400 italic">Review the content above before jumping to WhatsApp.</p>
         </template>
       </CustomModal>
 
@@ -149,7 +183,7 @@
       >
         <template #message>
           Would you like to auto-fill the form with 
-          <strong>{{ selectedResData?.name }} {{ selectedResData?.surname }}</strong>'s information?
+          <strong>{{ selectedResData?.guest?.firstName }} {{ selectedResData?.guest?.lastName }}</strong>'s information?
         </template>
       </CustomModal>
 
@@ -160,68 +194,121 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import Handlebars from 'handlebars'
-import { messageTemplates } from '../utils/templates.js'
 import { useToast } from '../composables/useToast'
 import { useBookingLogic } from '../composables/useBookingLogic'
-import { bookingService } from '../services/api.js';
+import { bookingService } from '../services/api.js'
 
 import RoomStayItem from './RoomStayItem.vue'
 import ActivityCard from './ActivityCard.vue'
 import CustomModal from './CustomModal.vue'
-const roomTypes = ref([]); // Now populated with objects: { id, name }
-const staffMembers = ref([]);
-const accounts = ref([]);
-const pricePolicies = ref([]);
 
 const props = defineProps(['form'])
-const emit = defineEmits(['save'])
 const { showToast } = useToast()
 
-const showPreviewModal = ref(false)
-const generatedText = ref("")
-const searchQuery = ref("")
+// State
+const roomTypes = ref([])
+const staffMembers = ref([])
+const accounts = ref([])
+const pricePolicies = ref([])
+const availableTemplates = ref([])
 const recent = ref([])
+
 const currentReservationId = ref(null)
+const selectedAccountId = ref(null)
+const searchQuery = ref("")
+const showTemplateDropdown = ref(false)
+const showPreviewModal = ref(false)
 const modalActive = ref(false)
 const selectedResData = ref(null)
-const selectedAccount = ref(null)
+const generatedText = ref("")
+const selectedTemplate = ref(null)
 
-
+// Logic Composable
 const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form, roomTypes);
+
+// Mapping for Payment Methods based on account type (Matches Backend)
+const ACCOUNT_METHOD_MAP = {
+  CASH: ['CASH'],
+  BANK: ['CREDIT_CARD', 'BANK_TRANSFER', 'ONLINE'],
+  VIRTUAL: ['CASH', 'CREDIT_CARD', 'BANK_TRANSFER', 'ONLINE']
+};
+
+const filteredMethods = computed(() => {
+  const acc = accounts.value.find(a => a.id === selectedAccountId.value);
+  if (!acc) return [];
+  return ACCOUNT_METHOD_MAP[acc.type] || [];
+});
+
+// Watch account change to set default method
+watch(selectedAccountId, (newId) => {
+  const acc = accounts.value.find(a => a.id === newId);
+  if (acc) {
+    props.form.paymentMethod = acc.type === 'CASH' ? 'CASH' : props.form.paymentMethod === 'BANK' ? 'BANK_TRANSFER' : 'ONLINE';
+  }
+});
 
 const filteredRecent = computed(() => {
   if (!searchQuery.value) return recent.value
   const q = searchQuery.value.toLowerCase()
-  return recent.value.filter(res => (res.name + " " + res.surname).toLowerCase().includes(q))
-})
+  return recent.value.filter(res => 
+    `${res.guest?.firstName} ${res.guest?.lastName}`.toLowerCase().includes(q)
+  )
+});
 
+// Loading Reservation
 const handleCardClick = (reservation) => {
   selectedResData.value = reservation;
   modalActive.value = true;
-}
+};
 
 const confirmLoad = () => {
   if (selectedResData.value) {
     currentReservationId.value = selectedResData.value.id;
-
     loadReservation(selectedResData.value);
     modalActive.value = false;
-    showToast("Form Loaded", `${selectedResData.value.guest.firstName} ${selectedResData.value.guest.lastName}'s data is ready.`);
+    showToast("Form Loaded", "Reservation data synced.");
   }
 };
 
-const generateMessage = (templateKey) => {
-  const template = Handlebars.compile(messageTemplates[templateKey])
-  generatedText.value = template({ ...props.form, balance: balance.value })
-  showPreviewModal.value = true
-}
+// Messaging
+const openPreview = (tpl) => {
+  try {
+    const template = Handlebars.compile(tpl.content);
+    const data = {
+      ...props.form,
+      balance: balance.value,
+      account: accounts.value.find(a => a.id === selectedAccountId.value) || {},
+      rooms: props.form.rooms.map(r => ({
+        ...r,
+        type: roomTypes.value.find(t => t.id === r.roomTypeId)?.name || 'Room'
+      }))
+    };
+    generatedText.value = template(data);
+    selectedTemplate.value = tpl;
+    showPreviewModal.value = true;
+    showTemplateDropdown.value = false;
+  } catch (err) {
+    showToast("Template Error", "Check Handlebars syntax", "error");
+  }
+};
 
-const copyToClipboard = async () => {
-  await navigator.clipboard.writeText(generatedText.value)
-  showPreviewModal.value = false
-  showToast("Copied!", "Ready to send on WhatsApp.")
-}
+const confirmAndSend = () => {
+  const msg = encodeURIComponent(generatedText.value);
+  const tpl = selectedTemplate.value;
 
+  if (tpl.category === 'GUEST') {
+    const phone = props.form.phone.replace(/\D/g, '');
+    const finalPhone = phone.startsWith('5') ? `90${phone}` : phone;
+    window.open(`https://wa.me/${finalPhone}?text=${msg}`, '_blank');
+  } else {
+    navigator.clipboard.writeText(generatedText.value);
+    showToast("Copied", "Opening WhatsApp...");
+    window.open(`https://web.whatsapp.com/`, '_blank');
+  }
+  showPreviewModal.value = false;
+};
+
+// Persistence
 const handleSave = async () => {
   try {
     const staff = staffMembers.value.find(s => s.name === props.form.staffName);
@@ -231,28 +318,33 @@ const handleSave = async () => {
         lastName: props.form.surname,
         phone: props.form.phone,
       },
-      staffId: staff?.id || staffMembers.value[0]?.id,
+      staffId: staff.id,
       totalAmount: props.form.total,
       received: props.form.received,
+      accountId: selectedAccountId.value,
+      method: props.form.paymentMethod,
       rooms: props.form.rooms.map(r => ({
-        roomTypeId: r.roomTypeId, // Direct ID usage
-        startDate: r.checkIn,     // Pure YYYY-MM-DD
-        endDate: r.checkOut,       // Pure YYYY-MM-DD
+        roomTypeId: r.roomTypeId,
+        startDate: r.checkIn,
+        endDate: r.checkOut,
         adults: r.adults,
         children: r.children,
         price: r.price
       }))
     };
 
-    const response = await bookingService.saveReservation(payload);
-    showToast("Success!", `Reservation #${response.data.id} confirmed.`);
-    resetForm();
-    
-    const updatedRecent = await bookingService.getRecentBookings();
-    recent.value = updatedRecent.data;
-    
+    let response;
+    if (currentReservationId.value) {
+      response = await bookingService.updateReservation(currentReservationId.value, payload);
+    } else {
+      response = await bookingService.createReservation(payload);
+    }
+
+    showToast("Success", `Reservation #${response.data.id} saved.`);
+    fetchRecent();
+    if(!currentReservationId.value) resetForm();
   } catch (error) {
-    showToast("Error", error.response?.data?.error || "Save failed", "error");
+    showToast("Error", error.message, "error");
   }
 };
 
@@ -260,50 +352,47 @@ const resetForm = () => {
   currentReservationId.value = null;
   Object.assign(props.form, {
     name: "", surname: "", phone: "", total: 0, received: 0, staffName: "",
-    rooms: [{ 
-      id: null, 
-      roomTypeId: roomTypes.value[0]?.id, 
-      renderKey: Date.now(), // Force recreation of the first room's UI
-      checkIn: null, 
-      checkOut: null, 
-      adults: 2, 
-      children: 0, 
-      price: 0 
-    }]
+    paymentMethod: "CASH",
+    rooms: []
   });
+  addRoom();
+};
+
+const fetchRecent = async () => {
+  const res = await bookingService.getRecentBookings();
+  recent.value = res.data;
 };
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 
 onMounted(async () => {
   try {
-    const [recentRes, staffRes, roomTypeRes, accountsRes, policiesRes] = await Promise.all([
+    const [recentRes, staffRes, roomTypeRes, accountsRes, policiesRes, templatesRes] = await Promise.all([
       bookingService.getRecentBookings(),
       bookingService.getStaff(),
       bookingService.getRoomTypes(),
       bookingService.getAccounts(),
-      bookingService.getPolicies()
+      bookingService.getPolicies(),
+      bookingService.getTemplates()
     ]);
 
     recent.value = recentRes.data;
     staffMembers.value = staffRes.data;
     roomTypes.value = roomTypeRes.data;
     accounts.value = accountsRes.data;
-    selectedAccount.value = accounts.value[0];
     pricePolicies.value = policiesRes.data;
+    availableTemplates.value = templatesRes.data;
 
-    if (props.form.rooms.length === 0 || (props.form.rooms.length === 1 && props.form.rooms[0].id === null)) {
-      // Clear any placeholder room and add a fresh one with the correct roomTypeId
-      props.form.rooms = [];
-      addRoom();
+    if (accounts.value.length > 0) {
+      selectedAccountId.value = accounts.value[0].id;
     }
 
-  } catch (err) {
-    console.log(err);
-    showToast("Error", "Failed to load initial data. " + err?.response?.data?.error, "error");
-  }
+    if (props.form.rooms.length === 0) addRoom();
 
-})
+  } catch (err) {
+    showToast("Error", "Initialization failed", "error");
+  }
+});
 </script>
 
 <style scoped>
@@ -318,21 +407,13 @@ onMounted(async () => {
 }
 
 .btn-icon {
-  @apply flex items-center gap-2 p-4 text-white rounded-xl px-6 font-bold transition-transform active:scale-95;
+  @apply flex items-center gap-2 p-4 text-white rounded-xl px-6 font-bold transition-transform active:scale-95 shadow-lg shadow-emerald-500/20;
 }
 
-/* Custom Scrollbar Styles */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-200 dark:bg-slate-700 rounded-full; }
 
-/* Transitions */
 .list-enter-active, .list-leave-active { transition: all 0.3s ease; }
 .list-enter-from, .list-leave-to { opacity: 0; transform: translateY(10px); }
 </style>

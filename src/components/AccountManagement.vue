@@ -60,7 +60,7 @@
           
           <div class="flex justify-between items-start mb-2">
             <div class="flex items-center gap-2">
-                <span :class="acc.type === 'CASH' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'" 
+                <span :class="acc.type === 'CASH' ? 'bg-amber-100 text-amber-700' : acc.type === 'BANK' ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'" 
                       class="text-[8px] font-bold px-2 py-1 rounded-lg uppercase">
                   {{ acc.type }}
                 </span>
@@ -76,7 +76,7 @@
               </div>
             </div>
 
-            <p class="font-bold dark:text-white text-sm">{{ acc.displayName }}</p>
+            <p class="font-bold dark:text-white text-sm">{{ acc.displayName }} <span v-if="acc.balance" class="text-emerald-500 text-[11px]">{{acc.balance}}₺</span></p>
             
             <div v-if="acc.iban" class="mt-3 p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center group/iban">
               <code class="text-[10px] font-mono text-slate-500 truncate mr-2">{{ acc.iban }}</code>
@@ -113,27 +113,30 @@
     <CustomModal :show="showAccModal" :title="isEditingAccount ? 'Update Account' : 'Add Payment Destination'" @confirm="saveAccount" @cancel="showAccModal = false">
       <template #message>
         <div class="space-y-4 text-left">
-          <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <div class="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
             <button @click="newAcc.type = 'BANK'" :class="newAcc.type === 'BANK' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'opacity-50'" class="p-2 rounded-lg text-[10px] font-bold transition-all">BANK ACCOUNT</button>
             <button @click="newAcc.type = 'CASH'" :class="newAcc.type === 'CASH' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'opacity-50'" class="p-2 rounded-lg text-[10px] font-bold transition-all">CASH / DESK</button>
+            <button @click="newAcc.type = 'VIRTUAL'" :class="newAcc.type === 'VIRTUAL' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'opacity-50'" class="p-2 rounded-lg text-[10px] font-bold transition-all">VIRTUAL</button>
           </div>
           <div>
             <label class="text-[10px] font-bold uppercase opacity-50">Display Title</label>
-            <input v-model="newAcc.displayName" class="modern-input" placeholder="e.g. Ziraat Main Branch">
+            <input v-model="newAcc.displayName" class="modern-input" placeholder="e.g. John Doe's Account">
           </div>
           <div v-if="newAcc.type === 'BANK'">
+            <label class="text-[10px] font-bold uppercase opacity-50">Bank Name</label>
+            <input v-model="newAcc.bankName" class="modern-input font-mono" placeholder="e.g. Pulse Financial Group">
             <label class="text-[10px] font-bold uppercase opacity-50">IBAN Number</label>
             <input v-model="newAcc.iban" class="modern-input font-mono" placeholder="TR00...">
           </div>
           <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-  <span class="text-[10px] font-bold uppercase opacity-50">Account Status</span>
-  <div class="flex items-center gap-2">
-    <span class="text-[10px] font-bold" :class="newAcc.isActive ? 'text-teal-500' : 'text-slate-400'">
-      {{ newAcc.isActive ? 'ACTIVE' : 'INACTIVE' }}
-    </span>
-    <input type="checkbox" v-model="newAcc.isActive" class="accent-teal-500 w-4 h-4">
-  </div>
-</div>
+            <span class="text-[10px] font-bold uppercase opacity-50">Account Status</span>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold" :class="newAcc.isActive ? 'text-teal-500' : 'text-slate-400'">
+                {{ newAcc.isActive ? 'ACTIVE' : 'INACTIVE' }}
+              </span>
+              <input type="checkbox" v-model="newAcc.isActive" class="accent-teal-500 w-4 h-4">
+            </div>
+          </div>
         </div>
       </template>
     </CustomModal>
@@ -200,7 +203,7 @@ const deleteOwner = async (id) => {
 
 const openAccountModal = () => {
   isEditingAccount.value = false;
-  newAcc.value = { displayName: '', type: 'BANK', iban: '', isActive: true }; // Default to true
+  newAcc.value = { displayName: '', type: 'BANK', iban: '', bankName: '', isActive: true }; // Default to true
   showAccModal.value = true;
 };
 
@@ -210,7 +213,8 @@ const editAccount = (acc) => {
   newAcc.value = { 
     displayName: acc.displayName, 
     type: acc.type, 
-    iban: acc.iban || '' 
+    iban: acc.iban || '',
+    bankName: acc.bankName || ''
   };
   showAccModal.value = true;
 };
