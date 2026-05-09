@@ -197,10 +197,13 @@ const fetchSuggestedPrice = async () => {
       endDate: props.room.checkOut,
       adults: props.room.adults,
       children: props.room.children,
-      overrides: props.room.overrides || []
+      policies: props.room.overrides || []
     });
+    console.log(JSON.stringify(res, 0, 2));
     suggestedPrice.value = res.data.totalSuggestedPrice;
-  } catch { /* Fail silently */ }
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 const initFlatpickr = () => {
