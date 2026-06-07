@@ -6,7 +6,11 @@
 
         <div class="flex justify-between items-start mb-6">
           <div>
-            <h2 class="text-2xl font-bold">{{ currentReservationId ? 'Edit Reservation' : 'New Booking' }}</h2>
+            <h2 class="text-2xl font-bold">{{ currentReservationId ? 'Edit Reservation' : 'New Booking' }}
+              <button v-if="currentReservationId" @click="currentReservationId = null" class="text-xs text-blue-500 bg-slate-100 dark:bg-slate-800 hover:text-rose-500 p-2 px-3 rounded-lg transition-colors gap-2">
+                <span>Cancel Edit <span class="text-[10px] animate-pulse">👈</span> </span>
+              </button>
+            </h2>
             <p v-if="currentReservationId" class="text-xs font-mono text-teal-500 mt-1 uppercase">
               ID: #{{ currentReservationId }} — {{ form.name }}
             </p>
@@ -19,10 +23,9 @@
         <div class="space-y-8">
           <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
             <label class="text-[10px] font-bold uppercase opacity-60 mb-2 block">Handled By (Staff)</label>
-            <input v-model="form.staffName" list="staffList" class="modern-input" placeholder="Type or select staff name...">
-            <datalist id="staffList">
-              <option v-for="user in staffMembers" :key="user.id" :value="user.name" />
-            </datalist>
+            <select v-model="form.staffId" class="compact-input font-bold dark:text-slate-200">
+              <option v-for="type in staffMembers" :key="type.id" :value="type.id">{{ type.name }}</option>
+            </select>
           </div>
 
           <section class="space-y-4">
@@ -52,8 +55,8 @@
               <TransitionGroup name="list">
                 <RoomStayItem 
                   v-for="(room, index) in form.rooms" 
-                  :key="room.renderKey || index"
-                  :room="room" 
+                  :key="room.id"
+                  v-model:room="form.rooms[index]"
                   :roomTypes="roomTypes"
                   :pricePolicies="pricePolicies" 
                   :canRemove="form.rooms.length > 1"
@@ -64,33 +67,36 @@
           </section>
 
           <div class="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-3xl space-y-6 border border-slate-100 dark:border-slate-800">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-1">
-                <label class="text-[9px] font-bold uppercase opacity-40">Target Account</label>
-                <select v-model="selectedAccountId" class="modern-input">
-                  <option v-for="account in accounts" :key="account.id" :value="account.id">
-                    {{ account.owner?.name }} - {{ account.displayName }} ({{ account.type }})
-                  </option>
-                </select>
+  
+            <section class="space-y-3">
+              <div class="flex justify-between items-center px-1">
+                <h3 class="font-bold text-slate-500 uppercase text-[10px] tracking-widest">Payments Breakdown</h3>
+                <button @click="addPaymentItem()" class="text-teal-500 text-[10px] font-bold hover:underline">+ Add Payment Split</button>
               </div>
-              <div class="space-y-1">
-                <label class="text-[9px] font-bold uppercase opacity-40">Payment Method</label>
-                <select v-model="form.paymentMethod" class="modern-input">
-                  <option v-for="method in filteredMethods" :key="method" :value="method">
-                    {{ method.replace('_', ' ') }}
-                  </option>
-                </select>
+              
+              <div class="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                <TransitionGroup name="list">
+                  <PaymentItem 
+                    v-for="(pay, index) in form.payments" 
+                    :key="index"
+                    v-model:paymentData="form.payments[index]"
+                    :balance="balance"
+                    :accounts="accounts"
+                    :calculateTotalFromRooms="calculateTotalFromRooms"
+                    @remove="removePaymentItem(index)"
+                  />
+                </TransitionGroup>
               </div>
-            </div>
+            </section>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 items-end">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 items-end border-t border-slate-200/50 dark:border-slate-700/50 pt-4">
               <div>
                 <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Total Amount</label>
                 <input type="number" v-model.number="form.total" class="financial-input">
               </div>
               <div>
-                <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Received</label>
-                <input type="number" v-model.number="form.received" class="financial-input text-emerald-500">
+                <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Total Received</label>
+                <input type="number" :value="form.received" class="financial-input text-emerald-500" readonly disabled>
               </div>
               <div class="hidden md:block">
                 <label class="text-[10px] uppercase font-bold opacity-50 block mb-2">Balance</label>
@@ -99,7 +105,7 @@
                 </div>
               </div>
               <div class="flex justify-end">
-                <button @click="calculateTotalFromRooms" class="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-2 rounded-xl hover:scale-105 transition-all">
+                <button @click="syncTotal" class="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-2 rounded-xl hover:scale-105 transition-all">
                   🔄 Sync Prices
                 </button>
               </div>
@@ -145,15 +151,15 @@
         <div class="sticky top-4 flex flex-col gap-4 h-[calc(100vh-2rem)]">
           <div class="px-2 space-y-3">
             <h3 class="font-bold text-lg">Recent Activity</h3>
-            <input v-model="searchQuery" placeholder="Search by name..." class="modern-input !rounded-xl text-sm">
+            <input v-model="searchQuery" placeholder="Search by name, phone number..." class="modern-input !rounded-xl text-sm">
           </div>
 
           <div class="space-y-3 overflow-y-auto px-2 custom-scrollbar flex-1">
             <ActivityCard 
-              v-for="res in filteredRecent" 
+              v-for="res in reservationsToDisplay"
               :key="res.id" 
               :reservation="res" 
-              @select="handleCardClick" 
+              @select="handleCardClick(res)" 
             />
           </div>
         </div>
@@ -175,11 +181,11 @@
       </CustomModal>
 
       <CustomModal 
-        :show="modalActive" 
+        :show="fillFormModalActive" 
         title="Load Reservation?" 
         confirmText="Fill Form" 
         @confirm="confirmLoad" 
-        @cancel="modalActive = false"
+        @cancel="fillFormModalActive = false"
       >
         <template #message>
           Would you like to auto-fill the form with 
@@ -192,20 +198,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import Handlebars from 'handlebars'
 import { useToast } from '../composables/useToast'
-import { useBookingLogic } from '../composables/useBookingLogic'
 import { bookingService } from '../services/api.js'
 
 import RoomStayItem from './RoomStayItem.vue'
 import ActivityCard from './ActivityCard.vue'
 import CustomModal from './CustomModal.vue'
+import PaymentItem from './PaymentItem.vue'
 
-const props = defineProps(['form'])
+const form = defineModel('form')
 const { showToast } = useToast()
 
-// State
 const roomTypes = ref([])
 const staffMembers = ref([])
 const accounts = ref([])
@@ -214,90 +219,203 @@ const availableTemplates = ref([])
 const recent = ref([])
 
 const currentReservationId = ref(null)
-const selectedAccountId = ref(null)
 const searchQuery = ref("")
 const showTemplateDropdown = ref(false)
 const showPreviewModal = ref(false)
-const modalActive = ref(false)
+const fillFormModalActive = ref(false)
 const selectedResData = ref(null)
 const generatedText = ref("")
 const selectedTemplate = ref(null)
 
-// Logic Composable
-const { balance, addRoom, removeRoom, calculateTotalFromRooms, loadReservation } = useBookingLogic(props.form, roomTypes);
+const reservationsToDisplay = ref([])
+let searchTimeout = null
 
-// Mapping for Payment Methods based on account type (Matches Backend)
-const ACCOUNT_METHOD_MAP = {
-  CASH: ['CASH'],
-  BANK: ['CREDIT_CARD', 'BANK_TRANSFER', 'ONLINE'],
-  VIRTUAL: ['CASH', 'CREDIT_CARD', 'BANK_TRANSFER', 'ONLINE']
-};
-
-const filteredMethods = computed(() => {
-  const acc = accounts.value.find(a => a.id === selectedAccountId.value);
-  if (!acc) return [];
-  return ACCOUNT_METHOD_MAP[acc.type] || [];
-});
-
-// Watch account change to set default method
-watch(selectedAccountId, (newId) => {
-  const acc = accounts.value.find(a => a.id === newId);
-  if (acc) {
-    props.form.paymentMethod = acc.type === 'CASH' ? 'CASH' : props.form.paymentMethod === 'BANK' ? 'BANK_TRANSFER' : 'ONLINE';
-  }
-});
-
+// 1. Local filtering computed property
 const filteredRecent = computed(() => {
   if (!searchQuery.value) return recent.value
   const q = searchQuery.value.toLowerCase()
-  return recent.value.filter(res => 
-    `${res.guest?.firstName} ${res.guest?.lastName}`.toLowerCase().includes(q)
+  return recent.value.filter(p => 
+    `${p.guest?.firstName} ${p.guest?.lastName}`.toLowerCase().includes(q)
   )
+})
+
+// 2. Drive UI view automatically from local cache when query changes
+watch(filteredRecent, (newLocalResults) => {
+  // If we have local matching results, or the search bar is empty, use them immediately
+  if (newLocalResults.length > 0 || !searchQuery.value) {
+    reservationsToDisplay.value = [...newLocalResults]
+  }
+}, { immediate: true })
+
+// 3. Debounced API fallback watcher when local results turn up empty
+watch(searchQuery, (newQuery) => {
+  clearTimeout(searchTimeout)
+  
+  // If the query is completely wiped, the local watcher above handles resetting the array
+  if (!newQuery.trim()) return
+
+  searchTimeout = setTimeout(async () => {
+    // ONLY ping the server database if our local recent activity cache doesn't match
+    if (filteredRecent.value.length === 0) {
+      try {
+        console.log("============ MATCH NOT FOUND LOCALLY -> API CALL ============");
+        const apiRes = await bookingService.searchReservation(newQuery)
+        
+        // Directly overwrite the array value so Vue detects the change cleanly (Avoid Object.assign)
+        reservationsToDisplay.value = [...apiRes.data]
+      } catch (err) {
+        console.error("Search API failed:", err)
+      }
+    }
+  }, 400) // 400ms debounce buffer prevents spamming your backend on every keypress
+})
+
+const balance = computed(() => {
+  return (form.value.total || 0) - (form.value.received || 0);
 });
 
-// Loading Reservation
+const addDays = (originalDate, days) => {
+    let date;
+    if (typeof originalDate === 'string') {
+      // Split the YYYY-MM-DD to avoid timezone shifting
+      const [y, m, d] = originalDate.split('-').map(Number);
+      date = new Date(y, m - 1, d); 
+    } else {
+      date = new Date(originalDate);
+    }
+    
+    date.setDate(date.getDate() + days);
+    
+    // Return in YYYY-MM-DD format manually to be safe
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const addRoom = () => {
+  const lastRoom = form.value.rooms.at(-1);
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  form.value.rooms.push({
+    id: crypto.randomUUID(), // Use this for better uniqueness
+    roomTypeId: lastRoom?.roomTypeId ?? roomTypes?.value[0]?.id ?? 0,
+    // If there's a last room, copy its dates, otherwise use today/tomorrow
+    checkIn: lastRoom?.checkIn ?? todayStr,
+    checkOut: lastRoom?.checkOut ?? addDays(todayStr, 1),
+    adults: lastRoom?.adults ?? 2,
+    children: lastRoom?.children ?? 0,
+    price: lastRoom?.price ?? 0
+  });
+};
+
+const removeRoom = (index) => {
+  if (form.value.rooms.length > 1) {
+    form.value.rooms.splice(index, 1);
+  }
+};
+
+const loadReservation = (data) => {
+  // Mapping incoming DB data to our strict form state
+  form.value.staffId = data.staffId;
+  form.value.name = data.guest.firstName;
+  form.value.surname = data.guest.lastName;
+  form.value.phone = data.guest.phone;
+  form.value.total = Number(data.totalAmount);
+  form.value.received = Number(data.received || 0);
+  form.value.rooms = data.rooms.map(r => ({
+    id: r.id,
+    roomTypeId: r.roomTypeId,
+    checkIn: r.startDate.split('T')[0],
+    checkOut: r.endDate.split('T')[0],
+    adults: r.adults,
+    children: r.children,
+    price: Number(r.price)
+  }));
+  form.value.payments = [];
+};
+
+const calculateTotalFromRooms = computed(() => {
+    return form.value.rooms.reduce((acc, room) => acc + (Number(room.price) || 0), 0);
+  });
+
+const syncTotal = () => {
+  form.value.total = calculateTotalFromRooms();
+}
+
 const handleCardClick = (reservation) => {
   selectedResData.value = reservation;
-  modalActive.value = true;
+  fillFormModalActive.value = true;
 };
 
 const confirmLoad = () => {
   if (selectedResData.value) {
     currentReservationId.value = selectedResData.value.id;
+    
     loadReservation(selectedResData.value);
-    modalActive.value = false;
+    fillFormModalActive.value = false;
+
+    // We are waiting for DOM structure and child state to get reset using nextTick
+    nextTick(() => {
+      if (selectedResData.value.payments && selectedResData.value.payments.length > 0) {
+        selectedResData.value.payments.forEach(payment => {
+          form.value.payments.push({
+            amount: payment.amount || null,
+            method: payment.method || null,
+            accountId: payment.accountId,
+            reservationId: currentReservationId.value
+          });
+        });
+      } else {
+        addPaymentItem();
+      }
+    });
+    
     showToast("Form Loaded", "Reservation data synced.");
   }
 };
 
-// Messaging
 const openPreview = (tpl) => {
   try {
     const template = Handlebars.compile(tpl.content);
+    console.log(JSON.stringify(form.value, null, 2));
+
     const data = {
-      ...props.form,
+      ...form.value,
       balance: balance.value,
-      account: accounts.value.find(a => a.id === selectedAccountId.value) || {},
-      rooms: props.form.rooms.map(r => ({
+
+      rooms: form.value.rooms?.map(r => ({
         ...r,
-        type: roomTypes.value.find(t => t.id === r.roomTypeId)?.name || 'Room'
-      }))
+        type: roomTypes.value.find(t => t.id === r.roomTypeId)?.name || 'NULL'
+      })) || [],
+
+      staffName: staffMembers.value.find(p => p.id == form.value.staffId)?.name || 'NULL',
+
+      payments: form.value.payments?.map(payment => {
+        const account = accounts.value.find(acc => acc.id === payment.accountId);
+        return {
+          ...payment, // Keeps original payment fields (like amount)
+          ...account
+        };
+      }) || []
     };
+
     generatedText.value = template(data);
     selectedTemplate.value = tpl;
     showPreviewModal.value = true;
     showTemplateDropdown.value = false;
   } catch (err) {
+    console.error(err);
     showToast("Template Error", "Check Handlebars syntax", "error");
   }
 };
-
 const confirmAndSend = () => {
   const msg = encodeURIComponent(generatedText.value);
   const tpl = selectedTemplate.value;
 
   if (tpl.category === 'GUEST') {
-    const phone = props.form.phone.replace(/\D/g, '');
+    const phone = form.value.phone.replace(/\D/g, '');
     const finalPhone = phone.startsWith('5') ? `90${phone}` : phone;
     window.open(`https://wa.me/${finalPhone}?text=${msg}`, '_blank');
   } else {
@@ -308,22 +426,20 @@ const confirmAndSend = () => {
   showPreviewModal.value = false;
 };
 
-// Persistence
 const handleSave = async () => {
   try {
-    const staff = staffMembers.value.find(s => s.name === props.form.staffName);
+    const staff = staffMembers.value.find(s => s.id === form.value.staffId);
+    console.log(JSON.stringify(form.value.payments, 0, 2));
     const payload = {
       guest: {
-        firstName: props.form.name,
-        lastName: props.form.surname,
-        phone: props.form.phone,
+        firstName: form.value.name,
+        lastName: form.value.surname,
+        phone: form.value.phone,
       },
-      staffId: staff.id,
-      totalAmount: props.form.total,
-      received: props.form.received,
-      accountId: selectedAccountId.value,
-      method: props.form.paymentMethod,
-      rooms: props.form.rooms.map(r => ({
+      staffId: staff?.id || null,
+      totalAmount: form.value.total,
+      payments: form.value.payments,
+      rooms: form.value.rooms.map(r => ({
         roomTypeId: r.roomTypeId,
         startDate: r.checkIn,
         endDate: r.checkOut,
@@ -332,6 +448,8 @@ const handleSave = async () => {
         price: r.price
       }))
     };
+
+    if (!payload.guest.firstName || !payload.guest.lastName || !payload.guest.phone) throw new Error("Guest details required.");
 
     let response;
     if (currentReservationId.value) {
@@ -350,13 +468,51 @@ const handleSave = async () => {
 
 const resetForm = () => {
   currentReservationId.value = null;
-  Object.assign(props.form, {
-    name: "", surname: "", phone: "", total: 0, received: 0, staffName: "",
-    paymentMethod: "CASH",
-    rooms: []
+  Object.assign(form.value, {
+    name: "",
+    surname: "",
+    phone: "",
+    total: 0,
+    received: 0,
+    staffId: staffMembers.value[0]?.id || -1,
+    rooms: [],
+    payments: []
   });
   addRoom();
 };
+
+const addPaymentItem = (payment = null) => {
+  if (!form.value.payments) form.value.payments = [];
+  
+  form.value.payments.push({
+    amount: payment ? payment.amount : null,
+    method: payment ? payment.method : null,
+    accountId: payment ? payment.accountId : null,
+    reservationId: currentReservationId.value || -1,
+  });
+};
+
+const removePaymentItem = (index) => {
+  form.value.payments.splice(index, 1);
+};
+
+const computedReceivedTotal = computed(() => {
+  if (!form.value.payments) return 0;
+  return form.value.payments.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+});
+
+const computedTotalPrice = computed(() => {
+  if (!form.value.rooms) return 0;
+  return form.value.rooms.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+});
+
+watch(computedReceivedTotal, (newVal) => {
+  form.value.received = newVal;
+});
+
+watch(computedTotalPrice, (newVal) => {
+  form.value.total = newVal;
+});
 
 const fetchRecent = async () => {
   const res = await bookingService.getRecentBookings();
@@ -382,12 +538,11 @@ onMounted(async () => {
     accounts.value = accountsRes.data;
     pricePolicies.value = policiesRes.data;
     availableTemplates.value = templatesRes.data;
+    
+    // Initial sync: display the recent bookings right away
+    reservationsToDisplay.value = [...recent.value]
 
-    if (accounts.value.length > 0) {
-      selectedAccountId.value = accounts.value[0].id;
-    }
-
-    if (props.form.rooms.length === 0) addRoom();
+    if (form.value.rooms.length === 0) addRoom();
 
   } catch (err) {
     showToast("Error", "Initialization failed", "error");
