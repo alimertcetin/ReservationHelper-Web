@@ -32,9 +32,9 @@ export const bookingService = {
   deletePolicy: (id) => api.delete(`/policies/${id}`),
 
   // --- ACCOUNTS & OWNERS ---
-  getOwners: () => api.get('/accounts/owners?includeInactive=true'),
-  createOwner: (data) => api.post('/accounts/owners', data),
-  deleteOwner: (id) => api.delete(`/accounts/owners/${id}`),
+  getOwners: () => api.get('/owners?includeInactive=true'),
+  createOwner: (data) => api.post('/owners', data),
+  deleteOwner: (id) => api.delete(`/owners/${id}`),
   
   getAccounts: () => api.get('/accounts'),
   createAccount: (data) => api.post('/accounts', data),
