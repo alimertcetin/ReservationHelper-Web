@@ -12,7 +12,21 @@ export const bookingService = {
   
   // Get by range: bookingService.getReservations('2026-01-01', '2026-01-31')
   getReservations: (start, end) => api.get('/reservations', { params: { start, end } }),
-  getRecentBookings: () => api.get('/reservations/recent'),
+  getRecentBookings: async () => {
+    const response = await api.get('/reservations/recent');
+    
+    // Safely map over the array payload to attach 'payments' keys matching 'transactions'
+    if (Array.isArray(response.data)) {
+      response.data = response.data.map(reservation => ({
+        ...reservation,
+        payments: reservation.transactions || []
+      }));
+    } else if (response.data && response.data.transactions) {
+      // Fallback fallback if an individual object is returned instead of an array
+      response.data.payments = response.data.transactions;
+    }
+
+    return response;
   
   // Payments
   addPayment: (resId, paymentData) => api.post(`/reservations/${resId}/pay`, paymentData),
