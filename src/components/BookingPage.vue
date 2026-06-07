@@ -239,9 +239,13 @@ const addRoom = () => {
   const lastRoom = form.value.rooms.at(-1);
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
+  const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   form.value.rooms.push({
-    id: crypto.randomUUID(),
+    id: uniqueId,
     roomTypeId: lastRoom?.roomTypeId ?? roomTypes.value[0]?.id ?? 0,
     checkIn: lastRoom?.checkIn ?? todayStr,
     checkOut: lastRoom?.checkOut ?? addDays(todayStr, 1),
