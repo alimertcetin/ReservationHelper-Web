@@ -50,7 +50,7 @@
             <div v-for="group in variableGroups" :key="group.label">
               <p class="text-[9px] font-black text-teal-600 uppercase mb-2">{{ group.label }}</p>
               <div class="flex flex-wrap gap-1.5">
-                <button v-for="v in group.vars" :key="v" @click="insertVar(v)" class="ide-pill">
+                <button v-for="v in group.vars" :key="v" @click="insertVar(editorRef, v)" class="ide-pill">
                   {{ v }}
                 </button>
               </div>
@@ -70,9 +70,9 @@
               </select>
             </div>
             <div class="flex gap-2">
-              <button @click="insertSnippet('rooms')" class="snippet-btn">🔁 Room Loop</button>
-              <button @click="insertSnippet('ifChild')" class="snippet-btn">👶 If Children</button>
-              <button @click="insertSnippet('ifBalance')" class="snippet-btn">💰 If Debt</button>
+              <button @click="insertSnippet(editorRef, 'rooms')" class="snippet-btn">🔁 Room Loop</button>
+              <button @click="insertSnippet(editorRef, 'ifChild')" class="snippet-btn">👶 If Children</button>
+              <button @click="insertSnippet(editorRef, 'ifBalance')" class="snippet-btn">💰 If Debt</button>
             </div>
           </div>
 
@@ -107,169 +107,43 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import Handlebars from 'handlebars';
-import '../utils/handlebars-helpers.js';
-import { bookingService } from '../services/api.js';
-import { useToast } from '../composables/useToast';
+import { useTemplates, variableGroups } from '../composables/useTemplates';
 
-const { showToast } = useToast();
-const templates = ref([]);
-const selectedTemplate = ref(null);
 const editorRef = ref(null);
-const filterCat = ref('GUEST');
 
-// FLAT VARIABLE SCHEMA (Matching your form object)
-const variableGroups = [
-  { label: 'Guest Info', vars: ['name', 'surname', 'phone'] },
-  { label: 'Financials', vars: ['total', 'received', 'balance', 'account.displayName', 'account.type', 'account.iban'] },
-  { label: 'Staff', vars: ['staffName'] },
-  { label: 'Loop Items', vars: ['rooms'] }
-];
+const {
+  selectedTemplate,
+  filterCat,
+  filteredTemplates,
+  validation,
+  fetchTemplates,
+  selectTemplate,
+  createNewTemplate,
+  saveTemplate,
+  deleteTemplate,
+  insertVar,
+  insertSnippet,
+  compileTemplate
+} = useTemplates();
 
-// PREVIEW MOCKUP (Matching your form structure)
-const dummyData = {
-  name: "Joe",
-  surname: "BLOGGS",
-  phone: "5939939393",
-  staffName: "John",
-  rooms: [
-    {
-      type: "Deluxe",
-      checkIn: "2026-04-18",
-      checkOut: "2026-04-19",
-      adults: 2,
-      children: 0,
-      price: 8000,
-    },
-    {
-      type: "Standard",
-      checkIn: "2026-04-19",
-      checkOut: "2026-04-20",
-      adults: 1,
-      children: 3,
-      price: 8000,
-    }
-  ],
-  total: 16000,
-  received: 2000,
-  balance: 14000,
-  account: {
-    displayName: "Rich Bank Online",
-    type: "BANK",
-    iban: "0",
-    owner: {
-      name: "Richard Roe",
-    },
-  },
-  method: "BANK_TRANSFER",
-};
-
-// --- CRUD LOGIC ---
-
-const fetchTemplates = async () => {
-  try {
-    const res = await bookingService.getTemplates();
-    templates.value = res.data || [];
-  } catch (err) {
-    showToast("Error", "Could not fetch templates", "error");
-  }
-};
-
-const selectTemplate = (t) => {
-  // Deep clone so changes don't affect sidebar until saved
-  selectedTemplate.value = JSON.parse(JSON.stringify(t));
-};
-
-const createNewTemplate = () => {
-  selectedTemplate.value = {
-    name: 'New ' + filterCat.value + ' Template',
-    content: '',
-    category: filterCat.value
-  };
-};
-
-const saveTemplate = async () => {
-  try {
-    const res = await bookingService.saveTemplate(selectedTemplate.value);
-    showToast("Success", "Template saved successfully");
-    await fetchTemplates();
-    // Re-select from list to get IDs if it was new
-    const saved = templates.value.find(t => t.name === selectedTemplate.value.name);
-    if (saved) selectedTemplate.value = { ...saved };
-  } catch (err) {
-    showToast("Error", "Save failed", "error");
-  }
-};
-
-const deleteTemplate = async (id) => {
-  if (!confirm("Delete this template?")) return;
-  try {
-    await bookingService.deleteTemplate(id);
-    if (selectedTemplate.value?.id === id) selectedTemplate.value = null;
-    await fetchTemplates();
-    showToast("Deleted", "Template removed.");
-  } catch (err) {
-    showToast("Error", "Delete failed", "error");
-  }
-};
-
-// --- IDE LOGIC ---
-
-const validation = computed(() => {
-  const content = selectedTemplate.value?.content || '';
-  if (!content) return { isValid: true, message: 'IDLE' };
-  try {
-    Handlebars.compile(content);
-    const opens = (content.match(/{{#/g) || []).length;
-    const closes = (content.match(/{{\//g) || []).length;
-    if (opens > closes) return { isValid: false, message: 'BLOCK OPEN', errorDetail: 'A logic block is not closed.' };
-    return { isValid: true, message: 'SYNTAX OK' };
-  } catch (e) {
-    return { isValid: false, message: 'ERROR', errorDetail: e.message };
-  }
-});
-
+// Compile runtime preview based on selected template code edits.
+// Note: Management views pass empty parameter targets to utilize standard mock values.
 const compiledPreview = computed(() => {
   if (!selectedTemplate.value?.content || !validation.value.isValid) return '';
-  try {
-    return Handlebars.compile(selectedTemplate.value.content)(dummyData);
-  } catch { return 'Compilation error...'; }
+  return compileTemplate(selectedTemplate.value.content, {});
 });
-
-const filteredTemplates = computed(() => templates.value.filter(t => t.category === filterCat.value));
-
-const insertVar = (v) => {
-  const start = editorRef.value.selectionStart;
-  const content = selectedTemplate.value.content;
-  selectedTemplate.value.content = content.substring(0, start) + `{{${v}}}` + content.substring(editorRef.value.selectionEnd);
-  editorRef.value.focus();
-};
-
-const insertSnippet = (type) => {
-  const start = editorRef.value.selectionStart;
-  const content = selectedTemplate.value.content;
-  let s = "";
-  if (type === 'rooms') s = `{{#each rooms}}\n🏨 {{type}} ({{checkIn}} - {{checkOut}}) | {{adults}} Adults{{#if children}}, {{children}} Children{{/if}}\n{{/each}}`;
-  if (type === 'ifChild') s = `{{#if children}} and {{children}} children{{/if}}`;
-  if (type === 'ifBalance') s = `{{#if balance}}⚠️ Remaining: {{balance}}₺{{else}}✅ Paid in Full{{/if}}`;
-  selectedTemplate.value.content = content.substring(0, start) + s + content.substring(editorRef.value.selectionEnd);
-  editorRef.value.focus();
-};
 
 onMounted(fetchTemplates);
 </script>
 
 <style scoped>
 @reference "../style.css";
-
 .ide-pill {
   @apply text-[10px] font-mono font-bold px-2 py-1 rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-teal-500 hover:text-teal-600 transition-all cursor-pointer;
 }
-
 .snippet-btn {
   @apply text-[10px] font-black bg-slate-800 text-white px-3 py-1.5 rounded-lg hover:bg-teal-500 transition-all;
 }
-
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-200 dark:bg-slate-700 rounded-full; }
