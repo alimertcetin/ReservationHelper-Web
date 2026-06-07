@@ -23,8 +23,8 @@
         <div class="space-y-8">
           <div class="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
             <label class="text-[10px] font-bold uppercase opacity-60 mb-2 block">Handled By (Staff)</label>
-            <select v-model="form.staffId" class="compact-input font-bold dark:text-slate-200">
-              <option v-for="type in staffMembers" :key="type.id" :value="type.id">{{ type.name }}</option>
+            <select v-model="form.staff" class="compact-input font-bold dark:text-slate-200">
+              <option v-for="staff in staffMembers" :key="staff.id" :value="staff">{{ staff.name }}</option>
             </select>
           </div>
 
@@ -110,7 +110,7 @@
               <div v-if="showTemplateDropdown" class="absolute bottom-full mb-2 right-0 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50">
                 <div class="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50"><span class="text-[10px] font-black uppercase opacity-50">Select Template</span></div>
                 <div class="max-h-64 overflow-y-auto custom-scrollbar">
-                  <button v-for="tpl in availableTemplates" :key="tpl.id" @click="openPreview(tpl)" class="w-full text-left p-4 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b last:border-none border-slate-50 dark:border-slate-800">
+                  <button v-for="tpl in templates" :key="tpl.id" @click="openPreview(tpl)" class="w-full text-left p-4 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b last:border-none border-slate-50 dark:border-slate-800">
                     <div class="flex justify-between items-center">
                       <span class="font-bold text-xs">{{ tpl.name }}</span>
                       <span :class="tpl.category === 'GUEST' ? 'text-emerald-500 border-emerald-500/30' : 'text-amber-500 border-amber-500/30'" class="text-[8px] font-black border px-1.5 py-0.5 rounded uppercase">{{ tpl.category }}</span>
@@ -160,11 +160,15 @@ const staffMembers = ref([])
 const accounts = ref([])
 const pricePolicies = ref([])
 const currentReservationId = ref(null)
+const showPreviewModal = ref(false);
+const showTemplateDropdown = ref(false);
 
 // 📱 Initialize Messaging Composable Layer Content Structures
 const { 
-  availableTemplates, generatedText, showPreviewModal, showTemplateDropdown, 
-  setTemplates, openPreview, confirmAndSend 
+    templates,
+    selectedTemplate,
+    fetchTemplates,
+    compileTemplate
 } = useTemplates({ form, roomTypes, staffMembers, accounts });
 
 // ⚡ Listen to Sidebar Selection changes through the decoupled Composable bridge hook
@@ -177,7 +181,7 @@ watch(reservationToLoadTrigger, (newData) => {
   // Apply changes to the local form state
   currentReservationId.value = newData.id;
   
-  form.value.staffId = newData.staffId;
+  form.value.staff = staffMembers.value.find(p => p.id === newData.staffId) || -1;
   form.value.name = newData.guest.firstName;
   form.value.surname = newData.guest.lastName;
   form.value.phone = newData.guest.phone;
@@ -216,7 +220,6 @@ watch(reservationToLoadTrigger, (newData) => {
 // Financial Computations
 const balance = computed(() => (form.value.total || 0) - (form.value.received || 0));
 const calculateTotalFromRooms = computed(() => form.value.rooms.reduce((acc, rm) => acc + (Number(rm.price) || 0), 0));
-const syncTotal = () => { form.value.total = calculateTotalFromRooms.value; }
 
 const computedReceivedTotal = computed(() => form.value.payments?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) || 0);
 const computedTotalPrice = computed(() => form.value.rooms?.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0) || 0);
@@ -272,10 +275,9 @@ const resetForm = () => {
 
 const handleSave = async () => {
   try {
-    const staff = staffMembers.value.find(s => s.id === form.value.staffId);
     const payload = {
       guest: { firstName: form.value.name, lastName: form.value.surname, phone: form.value.phone },
-      staffId: staff?.id || null,
+      staffId: form.value.staff?.id || null,
       totalAmount: form.value.total,
       payments: form.value.payments,
       rooms: form.value.rooms.map(r => ({
@@ -291,9 +293,9 @@ const handleSave = async () => {
       : await bookingService.createReservation(payload);
 
     showToast("Success", `Reservation #${response.data.id} saved.`);
-    invalidateCache();
-    
+
     // Call recent activity update over the composable layer context cleanly!
+    invalidateCache();
     fetchRecent();
     
     if (!currentReservationId.value) resetForm();
@@ -304,14 +306,62 @@ const handleSave = async () => {
 
 const formatCurrency = (val) => new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val || 0)
 
+const generatedText = ref("")
+const openPreview = (tpl) => {
+  try {
+
+    const data = {
+      ...form.value,
+      balance: balance.value,
+
+      rooms: form.value.rooms?.map(r => ({
+        ...r,
+        type: roomTypes.value.find(t => t.id === r.roomTypeId)?.name || 'NULL'
+      })) || [],
+
+      staffName: staffMembers.value.find(p => p.id == form.value.staffId)?.name || 'NULL',
+
+      payments: form.value.payments?.map(payment => {
+        const account = accounts.value.find(acc => acc.id === payment.accountId);
+        return {
+          ...payment, // Keeps original payment fields (like amount)
+          ...account
+        };
+      }) || []
+    };
+    generatedText.value = compileTemplate(tpl.content, data);
+    selectedTemplate.value = tpl;
+    showPreviewModal.value = true;
+    showTemplateDropdown.value = false;
+  } catch (err) {
+    console.error(err);
+    showToast("Template Error", "Check Handlebars syntax", "error");
+  }
+};
+
+const confirmAndSend = () => {
+  const msg = encodeURIComponent();
+  const tpl = selectedTemplate.value;
+
+  if (tpl.category === 'GUEST') {
+    const phone = form.value.phone.replace(/\D/g, '');
+    const finalPhone = phone.startsWith('5') ? `90${phone}` : phone;
+    window.open(`https://wa.me/${finalPhone}?text=${msg}`, '_blank');
+  } else {
+    navigator.clipboard.writeText(generatedText.value);
+    showToast("Copied", "Opening WhatsApp...");
+    window.open(`https://web.whatsapp.com/`, '_blank');
+  }
+  showPreviewModal.value = false;
+};
+
 onMounted(async () => {
   try {
-    const [staffRes, roomTypeRes, accountsRes, policiesRes, templatesRes] = await Promise.all([
+    const [staffRes, roomTypeRes, accountsRes, policiesRes] = await Promise.all([
       bookingService.getStaff(),
       bookingService.getRoomTypes(),
       bookingService.getAccounts(),
-      bookingService.getPolicies(),
-      bookingService.getTemplates()
+      bookingService.getPolicies()
     ]);
 
     staffMembers.value = staffRes.data;
@@ -319,10 +369,11 @@ onMounted(async () => {
     accounts.value = accountsRes.data;
     pricePolicies.value = policiesRes.data;
     
-    setTemplates(templatesRes.data);
+    fetchTemplates();
 
     if (form.value.rooms.length === 0) addRoom();
   } catch (err) {
+    console.error(err);
     showToast("Error", "Initialization failed", "error");
   }
 });
