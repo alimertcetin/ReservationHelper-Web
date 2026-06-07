@@ -72,15 +72,15 @@
               
               <div class="flex gap-2">
                  <button @click="editAccount(acc)" class="opacity-0 group-hover:opacity-70 hover:opacity-100 text-teal-500 text-[10px] font-bold uppercase transition-opacity">Edit</button>
-                 <button @click="deleteAccount(acc.id)" class="opacity-0 group-hover:opacity-70 hover:opacity-100 text-rose-500 text-[10px] font-bold uppercase transition-opacity">Delete</button>
+                 <button v-if="acc.isActive" @click="deleteAccount(acc.id)" class="opacity-0 group-hover:opacity-70 hover:opacity-100 text-rose-500 text-[10px] font-bold uppercase transition-opacity">Delete</button>
               </div>
             </div>
 
             <p class="font-bold dark:text-white text-sm">{{ acc.displayName }} <span v-if="acc.balance" class="text-emerald-500 text-[11px]">{{acc.balance}}₺</span></p>
             
-            <div v-if="acc.iban" class="mt-3 p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center group/iban">
-              <code class="text-[10px] font-mono text-slate-500 truncate mr-2">{{ acc.iban }}</code>
-              <button @click="copyText(acc.iban)" class="opacity-70 hover:opacity-100 text-[10px] text-teal-500 font-bold flex-shrink-0">Copy</button>
+            <div v-if="acc.details?.iban" class="mt-3 p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 flex justify-between items-center group/iban">
+              <code class="text-[10px] font-mono text-slate-500 truncate mr-2">{{ acc.details.iban }}</code>
+              <button @click="copyText(acc.details.iban)" class="opacity-70 hover:opacity-100 text-[10px] text-teal-500 font-bold flex-shrink-0">Copy</button>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@
       </template>
     </CustomModal>
 
-    <CustomModal :show="showAccModal" :title="isEditingAccount ? 'Update Account' : 'Add Payment Destination'" @confirm="saveAccount" @cancel="showAccModal = false">
+    <!-- <CustomModal :show="showAccModal" :title="isEditingAccount ? 'Update Account' : 'Add Payment Destination'" @confirm="saveAccount" @cancel="showAccModal = false">
       <template #message>
         <div class="space-y-4 text-left">
           <div class="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
@@ -124,9 +124,9 @@
           </div>
           <div v-if="newAcc.type === 'BANK'">
             <label class="text-[10px] font-bold uppercase opacity-50">Bank Name</label>
-            <input v-model="newAcc.bankName" class="modern-input font-mono" placeholder="e.g. Pulse Financial Group">
+            <input v-model="newAcc.details.bankName" class="modern-input font-mono" placeholder="e.g. Pulse Financial Group">
             <label class="text-[10px] font-bold uppercase opacity-50">IBAN Number</label>
-            <input v-model="newAcc.iban" class="modern-input font-mono" placeholder="TR00...">
+            <input v-model="newAcc.details.iban" class="modern-input font-mono" placeholder="TR00...">
           </div>
           <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
             <span class="text-[10px] font-bold uppercase opacity-50">Account Status</span>
@@ -139,7 +139,99 @@
           </div>
         </div>
       </template>
-    </CustomModal>
+    </CustomModal> -->
+
+    <CustomModal :show="showAccModal" :title="isEditingAccount ? 'Update Account' : 'Add Payment Destination'" @confirm="saveAccount" @cancel="showAccModal = false">
+  <template #message>
+    <div class="space-y-5 text-left max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
+      
+      <div>
+        <label class="text-[10px] font-bold uppercase opacity-50 block mb-1.5">Quick Presets</label>
+        <div class="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <button type="button" @click="applyPreset('BANK')" class="p-2 rounded-lg text-[10px] font-bold transition-all hover:bg-white/50 dark:hover:bg-slate-700/50 uppercase">🏦 Bank</button>
+          <button type="button" @click="applyPreset('CASH')" class="p-2 rounded-lg text-[10px] font-bold transition-all hover:bg-white/50 dark:hover:bg-slate-700/50 uppercase">💵 Cash</button>
+          <button type="button" @click="applyPreset('VIRTUAL')" class="p-2 rounded-lg text-[10px] font-bold transition-all hover:bg-white/50 dark:hover:bg-slate-700/50 uppercase">🌐 POS/Link</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-[10px] font-bold uppercase opacity-50">Account Type (Editable)</label>
+          <input v-model="newAcc.type" class="modern-input font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider" placeholder="e.g. BANK, CASH, CRYPTO">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase opacity-50">Display Title</label>
+          <input v-model="newAcc.displayName" class="modern-input" placeholder="e.g. Ziraat Main">
+        </div>
+      </div>
+
+      <div v-if="String(newAcc.type).toUpperCase().includes('BANK')" class="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-100 dark:border-slate-800">
+        <div>
+          <label class="text-[10px] font-bold uppercase opacity-50">Bank Name</label>
+          <input v-model="newAcc.details.bankName" class="modern-input" placeholder="Pulse Financial Group">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold uppercase opacity-50">IBAN Number</label>
+          <input v-model="newAcc.details.iban" class="modern-input font-mono uppercase tracking-wider" placeholder="TR00...">
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-[10px] font-bold uppercase opacity-50 block">Supported Payment Methods (Plain Text Tags)</label>
+        
+        <div class="flex gap-2">
+          <input 
+            v-model="methodInput" 
+            @keydown.enter.prevent="addCustomMethod" 
+            class="modern-input !mt-0" 
+            placeholder="Type a method (e.g. Visa, EFT, Crypto) and hit Enter or click +"
+          >
+          <button 
+            type="button" 
+            @click="addCustomMethod" 
+            class="bg-teal-500 hover:bg-teal-600 text-white font-bold px-4 rounded-xl text-sm transition-all flex items-center justify-center"
+          >
+            ＋
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 p-3 min-h-[60px] bg-slate-50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl">
+          <span v-if="newAcc.paymentMethods.length === 0" class="text-slate-400 text-[11px] italic self-center mx-auto">No methods appended yet. Type one above.</span>
+          
+          <div 
+            v-for="(method, index) in newAcc.paymentMethods" 
+            :key="index"
+            class="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 pl-2.5 pr-1.5 py-1 rounded-xl text-[11px] font-medium text-slate-700 dark:text-slate-300 shadow-sm"
+          >
+            <span>{{ method }}</span>
+            <button 
+              type="button" 
+              @click="removeCustomMethod(index)" 
+              class="w-4 h-4 rounded-md flex items-center justify-center bg-slate-100 hover:bg-rose-100 dark:bg-slate-700 dark:hover:bg-rose-950 text-[9px] text-slate-400 hover:text-rose-500 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+        <div>
+          <p class="text-[10px] font-bold uppercase opacity-50">Account Status</p>
+          <p class="text-[9px] text-slate-400">Can this be used on transactions?</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-black tracking-wider" :class="newAcc.isActive ? 'text-teal-500' : 'text-slate-400'">
+            {{ newAcc.isActive ? 'ACTIVE' : 'INACTIVE' }}
+          </span>
+          <input type="checkbox" v-model="newAcc.isActive" class="accent-teal-500 w-4 h-4 cursor-pointer">
+        </div>
+      </div>
+
+    </div>
+  </template>
+</CustomModal>
+
   </div>
 </template>
 
@@ -158,9 +250,162 @@ const showOwnerModal = ref(false);
 const showAccModal = ref(false);
 
 const newOwner = ref({ name: '', address: '' });
-const isEditingAccount = ref(false); // Track if we are editing
-const editingAccountId = ref(null); // Track which ID to update
-const newAcc = ref({ displayName: '', type: 'BANK', iban: '' });
+const isEditingAccount = ref(false);
+const editingAccountId = ref(null);
+
+
+
+// ********************************************
+// Pre-defined application payment scopes
+const methodInput = ref(''); // Bound to the custom string input box
+/*const newAcc = ref({ displayName: '', details: {}, type: 'BANK' });*/
+
+// Form initial state blueprint helper
+
+const PRESETS = {
+  BANK: { type: 'BANK', methods: ['Bank Transfer', 'Credit Card', 'EFT'] },
+  CASH: { type: 'CASH', methods: ['Cash Handover', 'Foreign Currency'] },
+  VIRTUAL: { type: 'VIRTUAL', methods: ['Online Payment Link', 'Mail Order'] }
+};
+
+const generateEmptyAccount = () => ({
+  displayName: '',
+  type: 'BANK',
+  isActive: true,
+  paymentMethods: [...PRESETS.BANK.methods], // Plain string arrays initialized out-of-box
+  details: { bankName: '', iban: '' }
+});
+
+const newAcc = ref(generateEmptyAccount());
+
+const openAccountModal = () => {
+  isEditingAccount.value = false;
+  editingAccountId.value = null;
+  methodInput.value = '';
+  newAcc.value = generateEmptyAccount();
+  showAccModal.value = true;
+};
+
+const editAccount = (acc) => {
+  isEditingAccount.value = true;
+  editingAccountId.value = acc.id;
+  
+  // Safe extraction fallback check mapping plain array variants
+  let rawMethods = [];
+  if (Array.isArray(acc.paymentMethods)) {
+    rawMethods = acc.paymentMethods.map(item => typeof item === 'object' ? (item.method || '') : item);
+  }
+
+  newAcc.value = {
+    ...acc,
+    paymentMethods: rawMethods,
+    details: acc.details ? { ...acc.details } : { bankName: '', iban: '' }
+  };
+  methodInput.value = '';
+  showAccModal.value = true;
+};
+
+const applyPreset = (presetKey) => {
+  const selected = PRESETS[presetKey];
+  if (!selected) return;
+  
+  newAcc.value.type = selected.type;
+  newAcc.value.paymentMethods = [...selected.methods];
+  
+  if (presetKey === 'BANK') {
+    newAcc.value.details = { bankName: '', iban: '' };
+  } else {
+    newAcc.value.details = {};
+  }
+};
+
+// Plain array mutations
+const addCustomMethod = () => {
+  const cleanVal = methodInput.value.trim();
+  if (!cleanVal) return;
+  
+  // Guard against identical duplicates
+  if (newAcc.value.paymentMethods.some(m => m.toLowerCase() === cleanVal.toLowerCase())) {
+    return showToast("Notice", "Method tag already exists.", "info");
+  }
+  
+  newAcc.value.paymentMethods.push(cleanVal);
+  methodInput.value = ''; // Flush input track field
+};
+
+const removeCustomMethod = (index) => {
+  newAcc.value.paymentMethods.splice(index, 1);
+};
+
+// Handle contextual defaults whenever type tab switch triggers
+const handleTypeChange = (type) => {
+  newAcc.value.type = type;
+  if (type !== 'BANK') {
+    newAcc.value.details = {};
+  } else {
+    newAcc.value.details = { bankName: '', iban: '' };
+  }
+  
+  // Auto select the primary method tag of that type category as a starter fallback
+  newAcc.value.paymentMethods = [{ id: 0, method: METHOD_POOL[type][0] }];
+};
+
+const getAvailableMethodsForType = (type) => METHOD_POOL[type] || [];
+
+const isMethodSelected = (methodString) => {
+  return newAcc.value.paymentMethods.some(m => m.method === methodString);
+};
+
+const togglePaymentMethod = (methodString) => {
+  const index = newAcc.value.paymentMethods.findIndex(m => m.method === methodString);
+  
+  if (index > -1) {
+      newAcc.value.paymentMethods.splice(index, 1);
+  } else {
+    // Append selection to stack mapping matching index array structure
+    newAcc.value.paymentMethods.push({
+      id: newAcc.value.paymentMethods.length,
+      method: methodString
+    });
+  }
+};
+
+const saveAccount = async () => {
+  if (!newAcc.value.displayName) return showToast("Required", "Title is necessary", "error");
+  if (!newAcc.value.type) return showToast("Required", "An account type classification is required", "error");
+  if (newAcc.value.paymentMethods.length === 0) return showToast("Required", "Provide at least one method type string entry", "error");
+
+  const payload = {
+    displayName: newAcc.value.displayName,
+    type: String(newAcc.value.type).toUpperCase().trim(),
+    isActive: newAcc.value.isActive,
+    paymentMethods: newAcc.value.paymentMethods, // Directly saves straight array string records cleanly into Json column!
+    details: String(newAcc.value.type).toUpperCase().includes('BANK') ? {
+      bankName: newAcc.value.details?.bankName || '',
+      iban: newAcc.value.details?.iban || ''
+    } : null
+  };
+
+  try {
+    if (isEditingAccount.value) {
+      await bookingService.updateAccount(editingAccountId.value, { ...payload, ownerId: selectedOwner.value.id });
+      showToast("Updated", "Account configuration modified.");
+    } else {
+      await bookingService.createAccount({ ...payload, ownerId: selectedOwner.value.id });
+      showToast("Success", "New destination registered.");
+    }
+    
+    showAccModal.value = false;
+    await fetchOwners();
+  } catch (err) {
+    showToast("Error", "Save error: " + err.message, "error");
+  }
+};
+// ********************************************
+
+
+
+
 
 const fetchOwners = async () => {
   try {
@@ -173,6 +418,7 @@ const fetchOwners = async () => {
       selectedOwner.value = owners.value[0];
     }
   } catch (err) {
+    console.error(JSON.stringify(err, 0, 2));
     showToast("Error", "Could not load data", "error");
   }
 };
@@ -200,28 +446,40 @@ const deleteOwner = async (id) => {
     await fetchOwners();
   } catch (err) { showToast("Error", "Delete failed. " + err, "error"); }
 };
-
+/*
 const openAccountModal = () => {
   isEditingAccount.value = false;
-  newAcc.value = { displayName: '', type: 'BANK', iban: '', bankName: '', isActive: true }; // Default to true
+  newAcc.value = { displayName: '', type: 'BANK', details: {}, isActive: true }; // Default to true
   showAccModal.value = true;
-};
-
+};*/
+/*
 const editAccount = (acc) => {
   isEditingAccount.value = true;
   editingAccountId.value = acc.id;
-  newAcc.value = { 
-    displayName: acc.displayName, 
-    type: acc.type, 
-    iban: acc.iban || '',
-    bankName: acc.bankName || ''
-  };
+  newAcc.value = {...acc};
   showAccModal.value = true;
-};
+};*/
 
-const saveAccount = async () => {
+/*const saveAccount = async () => {
   if (!newAcc.value.displayName) return showToast("Required", "Title is necessary", "error");
-  
+
+  const moveToDetails = (key) => {
+    if (newAcc.value[key]) {
+      newAcc.value.details ??= {};
+      newAcc.value.details[key] = newAcc.value[key];
+      newAcc.value[key] = undefined;
+      console.log("Moved key: " + key);
+    }
+  };
+
+  moveToDetails('iban');
+  moveToDetails('bankName');
+  if (Object.keys(newAcc.value.details).length == 0) {
+    newAcc.value.details = undefined;
+  }
+
+  console.log(JSON.stringify({...newAcc.value}), 0, 2);
+
   try {
     if (isEditingAccount.value) {
       // Update Logic
@@ -244,7 +502,7 @@ const saveAccount = async () => {
   } catch (err) {
     showToast("Error", "Operation failed. " + err, "error");
   }
-};
+};*/
 
 const deleteAccount = async (id) => {
   if (!confirm("Remove this account?")) return;
