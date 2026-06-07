@@ -1,3 +1,4 @@
+// src/services/api.js
 import axios from 'axios';
 
 const api = axios.create({
@@ -6,42 +7,34 @@ const api = axios.create({
 
 export const bookingService = {
   // --- RESERVATIONS ---
-  // payload can be new reservation or update data
   createReservation: (payload) => api.post('/reservations', payload),
   updateReservation: (id, data) => api.put(`/reservations/${id}`, data),
-  
-  // Get by range: bookingService.getReservations('2026-01-01', '2026-01-31')
   getReservations: (start, end) => api.get('/reservations', { params: { start, end } }),
-  getRecentBookings: async () => {
-    const response = await api.get('/reservations/recent');
+  
+  // Clean delivery mapping matching your new paginated JSON envelope format!
+  getRecentBookings: async (page = 1, limit = 6) => {
+    const response = await api.get(`/reservations/recent?page=${page}&limit=${limit}`);
     
-    // Safely map over the array payload to attach 'payments' keys matching 'transactions'
-    if (Array.isArray(response.data)) {
-      response.data = response.data.map(reservation => ({
+    // Safety check map to keep transactional data structurally intact
+    if (response.data && Array.isArray(response.data.reservations)) {
+      response.data.reservations = response.data.reservations.map(reservation => ({
         ...reservation,
         payments: reservation.transactions || []
       }));
-    } else if (response.data && response.data.transactions) {
-      // Fallback fallback if an individual object is returned instead of an array
-      response.data.payments = response.data.transactions;
     }
-
     return response;
   },
+
+  // Pure fuzzy string searches matching your raw unpaginated format
   searchReservation: async (guestDataQuery) => {
-    const response = api.get(`reservations/search?q=${guestDataQuery}`);
+    const response = await api.get(`/reservations/search?q=${encodeURIComponent(guestDataQuery)}`);
     
-    // Safely map over the array payload to attach 'payments' keys matching 'transactions'
     if (Array.isArray(response.data)) {
       response.data = response.data.map(reservation => ({
         ...reservation,
         payments: reservation.transactions || []
       }));
-    } else if (response.data && response.data.transactions) {
-      // Fallback fallback if an individual object is returned instead of an array
-      response.data.payments = response.data.transactions;
     }
-
     return response;
   },
   
