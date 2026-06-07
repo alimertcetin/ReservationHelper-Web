@@ -27,6 +27,23 @@ export const bookingService = {
     }
 
     return response;
+  },
+  searchReservation: async (guestDataQuery) => {
+    const response = api.get(`reservations/search?q=${guestDataQuery}`);
+    
+    // Safely map over the array payload to attach 'payments' keys matching 'transactions'
+    if (Array.isArray(response.data)) {
+      response.data = response.data.map(reservation => ({
+        ...reservation,
+        payments: reservation.transactions || []
+      }));
+    } else if (response.data && response.data.transactions) {
+      // Fallback fallback if an individual object is returned instead of an array
+      response.data.payments = response.data.transactions;
+    }
+
+    return response;
+  },
   
   // Payments
   addPayment: (resId, paymentData) => api.post(`/reservations/${resId}/pay`, paymentData),
