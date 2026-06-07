@@ -68,7 +68,10 @@
 
     <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
       <div class="flex items-center justify-between mb-3 px-1">
-        <h4 class="text-[9px] font-black uppercase tracking-widest text-slate-400">Adjustment Policies</h4>
+        <h4 class="text-[9px] font-black uppercase tracking-widest text-slate-400">Adjustment Policies
+          <button v-if="room.overrides?.length > 0" @click="room.overrides = []" class="text-xs text-blue-500 bg-slate-100 dark:bg-slate-800 hover:text-rose-500 px-3 rounded-lg transition-colors">
+            Temizle
+        </button></h4>
         <div class="flex gap-2">
           <button @click="addOverride('GUEST')" class="policy-add-btn text-teal-600 bg-teal-50 dark:bg-teal-900/20">+ Guest</button>
           <button @click="addOverride('NIGHT')" class="policy-add-btn text-amber-600 bg-amber-50 dark:bg-amber-900/20">+ Nightly</button>
@@ -114,12 +117,12 @@
           </div>
         </div>
       </div>
+      
     </div>
   </div>
 </template>
 
 <script setup>
-/* ... (Logic remains identical to the previous fixed version) ... */
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import 'flatpickr/dist/flatpickr.min.css'
 import flatpickr from 'flatpickr'
@@ -127,41 +130,42 @@ import { Turkish } from "flatpickr/dist/l10n/tr.js"
 import { bookingService } from "./../services/api.js"
 import { dateToData } from "../utils/utility.js"
 
-const props = defineProps(['room', 'roomTypes', 'pricePolicies', 'canRemove'])
+const props = defineProps(['roomTypes', 'pricePolicies', 'canRemove'])
+const room = defineModel('room')
 const emit = defineEmits(['remove'])
 
 const dateInput = ref(null)
 let fpInstance = null
 const suggestedPrice = ref(0)
 
-const guestOverrides = computed(() => (props.room.overrides || []).filter(ov => {
+const guestOverrides = computed(() => (room.value.overrides || []).filter(ov => {
   if (ov.policyId) return props.pricePolicies.find(p => p.id === ov.policyId)?.scope === 'GUEST';
   return ov._temporaryScope === 'GUEST';
 }));
 
-const nightOverrides = computed(() => (props.room.overrides || []).filter(ov => {
+const nightOverrides = computed(() => (room.value.overrides || []).filter(ov => {
   if (ov.policyId) return props.pricePolicies.find(p => p.id === ov.policyId)?.scope === 'NIGHT';
   return ov._temporaryScope === 'NIGHT';
 }));
 
-const stayOverrides = computed(() => (props.room.overrides || []).filter(ov => {
+const stayOverrides = computed(() => (room.value.overrides || []).filter(ov => {
   if (ov.policyId) return props.pricePolicies.find(p => p.id === ov.policyId)?.scope === 'STAY';
   return ov._temporaryScope === 'STAY';
 }));
 
-const isPriceSynced = computed(() => props.room.price > 0 && props.room.price === suggestedPrice.value);
+const isPriceSynced = computed(() => room.value.price > 0 && room.value.price === suggestedPrice.value);
 const getPoliciesByScope = (scope) => props.pricePolicies.filter(p => p.scope === scope);
 
 const updateGuests = (type, change) => {
   const min = type === 'adults' ? 1 : 0;
-  props.room[type] = Math.max(min, (props.room[type] || 0) + change);
+  room.value[type] = Math.max(min, (room.value[type] || 0) + change);
   validateOverrides();
   fetchSuggestedPrice();
 }
 
 const addOverride = (scope) => {
-  if (!props.room.overrides) props.room.overrides = [];
-  props.room.overrides.push({ 
+  if (!room.value.overrides) room.value.overrides = [];
+  room.value.overrides.push({ 
     guestKey: scope === 'GUEST' ? 'A1' : 'ROOM', 
     policyId: null,
     _temporaryScope: scope 
@@ -169,50 +173,50 @@ const addOverride = (scope) => {
 };
 
 const removeOverride = (ov) => {
-  const idx = props.room.overrides.indexOf(ov);
+  const idx = room.value.overrides.indexOf(ov);
   if (idx > -1) {
-    props.room.overrides.splice(idx, 1);
+    room.value.overrides.splice(idx, 1);
     fetchSuggestedPrice();
   }
 }
 
 const validateOverrides = () => {
-  if (!props.room.overrides) return;
-  props.room.overrides = props.room.overrides.filter(ov => {
+  if (!room.value.overrides) return;
+  room.value.overrides = room.value.overrides.filter(ov => {
     if (ov.guestKey === 'ROOM') return true;
     const type = ov.guestKey[0]; 
     const num = parseInt(ov.guestKey.substring(1));
-    return type === 'A' ? num <= (props.room.adults || 0) : num <= (props.room.children || 0);
+    return type === 'A' ? num <= (room.value.adults || 0) : num <= (room.value.children || 0);
   });
 }
 
-const applySuggested = () => { props.room.price = suggestedPrice.value; }
+const applySuggested = () => { room.value.price = suggestedPrice.value; }
 
 const fetchSuggestedPrice = async () => {
-  if (!props.room.checkIn || !props.room.checkOut || !props.room.roomTypeId) return;
+  if (!room.value.checkIn || !room.value.checkOut || !room.value.roomTypeId) return;
+  const r = {
+      roomTypeId: room.value.roomTypeId,
+      startDate: room.value.checkIn,
+      endDate: room.value.checkOut,
+      adults: room.value.adults,
+      children: room.value.children,
+      policies: room.value.overrides || []
+    };
   try {
-    const res = await bookingService.getSuggestedPrice({
-      roomTypeId: props.room.roomTypeId,
-      startDate: props.room.checkIn,
-      endDate: props.room.checkOut,
-      adults: props.room.adults,
-      children: props.room.children,
-      policies: props.room.overrides || []
-    });
-    console.log(JSON.stringify(res, 0, 2));
+    const res = await bookingService.getSuggestedPrice(r);
     suggestedPrice.value = res.data.totalSuggestedPrice;
   } catch (error) {
-    console.error(error);
+    console.error(error + " " + JSON.stringify(r, 0, 2));
   }
 }
 
 const initFlatpickr = () => {
   fpInstance = flatpickr(dateInput.value, {
-    mode: "range", dateFormat: "j F Y", locale: Turkish, minDate: "today",
+    mode: "range", dateFormat: "j F Y", locale: Turkish, minDate: new Date().fp_incr(-3),
     onChange: (dates) => {
       if (dates.length === 2) {
-        props.room.checkIn = dateToData(dates[0]);
-        props.room.checkOut = dateToData(dates[1]);
+        room.value.checkIn = dateToData(dates[0]);
+        room.value.checkOut = dateToData(dates[1]);
         fetchSuggestedPrice();
       }
     }
@@ -221,8 +225,8 @@ const initFlatpickr = () => {
 
 onMounted(() => {
   initFlatpickr();
-  if (props.room.checkIn && props.room.checkOut) fpInstance.setDate([new Date(props.room.checkIn), new Date(props.room.checkOut)], false);
-  if (props.roomTypes.length > 0 && !props.room.roomTypeId) props.room.roomTypeId = props.roomTypes[0].id;
+  if (room.value.checkIn && room.value.checkOut) fpInstance.setDate([new Date(room.value.checkIn), new Date(room.value.checkOut)], false);
+  if (props.roomTypes.length > 0 && !room.value.roomTypeId) room.value.roomTypeId = props.roomTypes[0].id;
   fetchSuggestedPrice();
 });
 
