@@ -11,12 +11,17 @@
           <button @click="sidebarOpen = false" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">✕</button>
         </div>
         <nav class="space-y-2">
-          <button v-for="item in menu" :key="item.id" 
-                  @click="currentPage = item.id; sidebarOpen = false"
-                  :class="['w-full flex items-center gap-3 p-3 rounded-xl transition-all', 
-                           currentPage === item.id ? 'bg-teal-500 text-white shadow-lg' : 'hover:bg-slate-100 dark:hover:bg-slate-800']">
+          <router-link 
+            v-for="item in computedMenu" 
+            :key="item.id" 
+            :to="item.path"
+            @click="sidebarOpen = false"
+            class="w-full flex items-center gap-3 p-3 rounded-xl transition-all block"
+            active-class="bg-teal-500 text-white shadow-lg"
+            inactive-class="hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
             <span>{{ item.icon }}</span> {{ item.label }}
-          </button>
+          </router-link>
         </nav>
       </div>
     </aside>
@@ -37,17 +42,20 @@
     </nav>
 
     <main class="max-w-[1600px] mx-auto p-4 md:p-6 min-h-[calc(100vh-68px)]">
-        <BookingPage v-if="currentPage === 'bookings'" :form="form" />
+        <router-view v-slot="{ Component }">
+          <component :is="Component" v-model:form="form" />
+        </router-view>
+<!-- 
         <StaffManagement v-else-if="currentPage === 'staff'" />
         <PriceManager v-else-if="currentPage === 'priceManager'" :form="form" />
         <AccountManagement v-else-if="currentPage === 'accounts'" :form="form" />
         <RoomTypeManagement v-else-if="currentPage === 'rooms'" :form="form" />
         <PricePolicyManagement v-else-if="currentPage === 'pricePolicy'" :form="form" />
         <TemplateManagement v-else-if="currentPage === 'templateManagement'" :form="form" />
-        
-        <div v-else class="flex items-center justify-center h-96 opacity-30">
+         -->
+        <!-- <div v-else class="flex items-center justify-center h-96 opacity-30">
             <h2 class="text-3xl font-bold italic">{{ currentPage }} page coming soon...</h2>
-        </div>
+        </div> -->
     </main>
 
     <TheToast />
@@ -55,30 +63,30 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import BookingPage from './components/BookingPage.vue'
-import StaffManagement from './components/StaffManagement.vue'
-import PriceManager from './components/PriceManager.vue'
-import AccountManagement from './components/AccountManagement.vue'
-import RoomTypeManagement from './components/RoomTypeManagement.vue'
-import PricePolicyManagement from './components/PricePolicyManagement.vue'
-import TemplateManagement from './components/TemplateManagement.vue'
+import { ref, reactive, computed } from 'vue'
 import TheToast from './components/TheToast.vue'
 
 const isDark = ref(false)
 const sidebarOpen = ref(false)
-const currentPage = ref('bookings')
 
 const menu = [
-  { id: 'bookings', label: 'New Booking', icon: '🏨' },
-  { id: 'rooms', label: 'Room List', icon: '🛏️' },
-  { id: 'accounts', label: 'Accounts', icon: '💳' },
-  { id: 'staff', label: 'Staff Management', icon: '👨🏻‍💼' },
-  { id: 'priceManager', label: 'Price Manager', icon: '📅' },
-  { id: 'pricePolicy', label: 'Price Policies', icon: '$' },
-  { id: 'templateManagement', label: 'Template Management', icon: '##' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' }
+  { id: 'bookings', label: 'New Booking', icon: '🏨', path: '/bookings' },
+  { id: 'rooms', label: 'Room List', icon: '🛏️', path: '/room-type-management' },
+  { id: 'accounts', label: 'Accounts', icon: '💳', path: '/account-management' },
+  { id: 'staff', label: 'Staff Management', icon: '👨🏻‍💼', path: '/staff-management' },
+  { id: 'priceManager', label: 'Price Manager', icon: '📅', path: '/price-manager' },
+  { id: 'pricePolicy', label: 'Price Policies', icon: '$', path: '/policy-manager' },
+  { id: 'templateManagement', label: 'Template Management', icon: '##', path: '/template-management' },
+  { id: 'settings', label: 'Settings', icon: '⚙️', path: null }
 ]
+
+const computedMenu = computed(() => {
+  let menuItems = [];
+  for (var i = 0; i < menu.length; i++) {
+    if (menu[i].path) menuItems.push(menu[i]); 
+  }
+  return menuItems;
+});
 
 // Global form state if you want it to persist between menu switches
 const form = reactive({
