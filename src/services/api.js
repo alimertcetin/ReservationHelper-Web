@@ -67,7 +67,7 @@ export const bookingService = {
     params: {
       ...params,
       // Stringify overrides if they exist so they pass through URL params correctly
-      overrides: params.overrides ? JSON.stringify(params.overrides) : undefined
+      policies: params.policies ? JSON.stringify(params.policies) : undefined
     } 
   }),
   getPriceRules: () => api.get('/prices/all'),
