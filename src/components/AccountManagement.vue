@@ -441,68 +441,11 @@ const saveOwner = async () => {
 const deleteOwner = async (id) => {
   if (!confirm("This will delete the owner and all linked accounts. Continue?")) return;
   try {
-    await bookingService.deleteOwner(id); // Ensure this exists in your API
+    await bookingService.deleteOwner(id);
     if (selectedOwner.value?.id === id) selectedOwner.value = null;
     await fetchOwners();
   } catch (err) { showToast("Error", "Delete failed. " + err, "error"); }
 };
-/*
-const openAccountModal = () => {
-  isEditingAccount.value = false;
-  newAcc.value = { displayName: '', type: 'BANK', details: {}, isActive: true }; // Default to true
-  showAccModal.value = true;
-};*/
-/*
-const editAccount = (acc) => {
-  isEditingAccount.value = true;
-  editingAccountId.value = acc.id;
-  newAcc.value = {...acc};
-  showAccModal.value = true;
-};*/
-
-/*const saveAccount = async () => {
-  if (!newAcc.value.displayName) return showToast("Required", "Title is necessary", "error");
-
-  const moveToDetails = (key) => {
-    if (newAcc.value[key]) {
-      newAcc.value.details ??= {};
-      newAcc.value.details[key] = newAcc.value[key];
-      newAcc.value[key] = undefined;
-      console.log("Moved key: " + key);
-    }
-  };
-
-  moveToDetails('iban');
-  moveToDetails('bankName');
-  if (Object.keys(newAcc.value.details).length == 0) {
-    newAcc.value.details = undefined;
-  }
-
-  console.log(JSON.stringify({...newAcc.value}), 0, 2);
-
-  try {
-    if (isEditingAccount.value) {
-      // Update Logic
-      await bookingService.updateAccount(editingAccountId.value, { 
-        ...newAcc.value, 
-        ownerId: selectedOwner.value.id 
-      });
-      showToast("Updated", "Account details updated.");
-    } else {
-      // Create Logic
-      await bookingService.createAccount({ 
-        ...newAcc.value, 
-        ownerId: selectedOwner.value.id 
-      });
-      showToast("Success", "Account added.");
-    }
-    
-    showAccModal.value = false;
-    await fetchOwners();
-  } catch (err) {
-    showToast("Error", "Operation failed. " + err, "error");
-  }
-};*/
 
 const deleteAccount = async (id) => {
   if (!confirm("Remove this account?")) return;
