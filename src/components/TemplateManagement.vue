@@ -43,8 +43,13 @@
             <div v-if="filteredTemplates.length === 0" class="p-8 text-center text-[10px] text-slate-400 font-bold uppercase italic">No saved drafts</div>
           </div>
         </div>
+        
+        <span class="text-[10px] font-bold" :class="enableLiveData ? 'text-teal-500' : 'text-slate-400'">
+          Enable Live Data
+        </span>
+        <input type="checkbox" v-model="enableLiveData" :value="enableLiveData" class="w-5 h-5 accent-teal-500 cursor-pointer">
 
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div v-if="enableLiveData === false" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
           <h3 class="text-[9px] font-black text-slate-400 uppercase mb-4 tracking-widest">Available Variables</h3>
           <div class="space-y-6">
             <div v-for="group in variableGroups" :key="group.label">
@@ -57,6 +62,11 @@
             </div>
           </div>
         </div>
+        
+        <div v-else-if="enableLiveData" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+          <p class="whitespace-pre-wrap">{{ JSON.stringify(liveData, 0, 2) }}</p>
+        </div>
+
       </div>
 
       <div class="col-span-12 lg:col-span-6 space-y-4">
@@ -106,31 +116,66 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useTemplates, variableGroups } from '../composables/useTemplates';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useTemplates } from '../composables/useTemplates';
+import { useTemplateEditor, variableGroups } from '@/composables/useTemplateEditor';
+import { useBookingLogic } from '@/composables/useBookingLogic';
 
 const editorRef = ref(null);
+const enableLiveData = ref(false);
+const liveData = ref(null);
+
+const {
+  fetchTemplates,
+  selectTemplate,
+  createNewTemplate,
+  saveTemplate,
+  deleteTemplate,
+} = useTemplates();
 
 const {
   selectedTemplate,
   filterCat,
   filteredTemplates,
   validation,
-  fetchTemplates,
-  selectTemplate,
-  createNewTemplate,
-  saveTemplate,
-  deleteTemplate,
   insertVar,
   insertSnippet,
   compileTemplate
-} = useTemplates();
+} = useTemplateEditor();
+
+const { bookingForm, roomTypes, accounts, balance } = useBookingLogic();
+
+watch(enableLiveData, () => {
+  if (enableLiveData.value) {
+      const data = {
+        ...bookingForm.value,
+        balance: balance,
+
+        rooms: bookingForm.value.rooms?.map(r => ({
+          ...r,
+          type: roomTypes.value.find(t => t.id === r.roomTypeId)?.name || 'NULL'
+        })) || [],
+
+        staffName: bookingForm.value.staff.name,
+
+        payments: bookingForm.value.payments?.map(payment => {
+          const account = accounts.value.find(acc => acc.id === payment.accountId);
+          return {
+            ...payment, // Keeps original payment fields (like amount)
+            ...account
+          };
+        }) || []
+      };
+    liveData.value = data;
+  }
+});
 
 // Compile runtime preview based on selected template code edits.
 // Note: Management views pass empty parameter targets to utilize standard mock values.
 const compiledPreview = computed(() => {
   if (!selectedTemplate.value?.content || !validation.value.isValid) return '';
-  return compileTemplate(selectedTemplate.value.content, {});
+
+  return compileTemplate(selectedTemplate.value.content, enableLiveData.value ? liveData.value : {});
 });
 
 onMounted(fetchTemplates);
