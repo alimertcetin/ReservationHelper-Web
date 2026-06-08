@@ -17,7 +17,12 @@ export const dummyFallbackData = {
   name: "Joe",
   surname: "BLOGGS",
   phone: "555 123 45 67",
-  staffName: "System Operator",
+  staff: {
+    id: 9,
+    name: "Zoe",
+    role: "RECEPTIONIST",
+    isActive: true
+  },
   rooms: [
     { type: "Deluxe Suite", checkIn: "2026-06-15", checkOut: "2026-06-20", adults: 2, children: 1, price: 5000 },
     { type: "Standard Double", checkIn: "2026-06-15", checkOut: "2026-06-17", adults: 1, children: 0, price: 2200 }
@@ -25,7 +30,9 @@ export const dummyFallbackData = {
   total: 12200,
   received: 4000,
   balance: 8200,
-  account: { displayName: "Main Operations Account", type: "BANK", iban: "TR00112233" }
+  payments: [
+    { displayName: "Main Operations Account", type: "BANK", details: { iban: "TR00112233", bankName: "Bank name" } }
+  ]
 };
 
 export function useTemplateEditor() {
@@ -54,7 +61,7 @@ export function useTemplateEditor() {
     if (!content) return '';
     try {
       // Build an evaluation record by ensuring that if names/rooms are empty, fallback options replace them seamlessly
-      const contextualPayload = {
+      /*const contextualPayload = {
       	...runtimeData,
         name: runtimeData.name || dummyFallbackData.name,
         surname: runtimeData.surname || dummyFallbackData.surname,
@@ -65,9 +72,11 @@ export function useTemplateEditor() {
         balance: runtimeData.balance !== undefined ? runtimeData.balance : dummyFallbackData.balance,
         account: runtimeData.account || dummyFallbackData.account,
         rooms: runtimeData.rooms && runtimeData.rooms.length > 0 ? runtimeData.rooms : dummyFallbackData.rooms
-      };
+      };*/
+      const isEmpty = Object.keys(runtimeData).length === 0;
+      const data = !isEmpty ? runtimeData : dummyFallbackData;
 
-      return Handlebars.compile(content)(contextualPayload);
+      return Handlebars.compile(content)(data);
     } catch (err) {
       return 'Compilation formatting breakdown...';
     }
