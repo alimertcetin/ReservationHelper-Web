@@ -56,7 +56,7 @@ export const bookingService = {
   deletePolicy: (id) => api.delete(`/policies/${id}`),
 
   // --- ACCOUNTS & OWNERS ---
-  getOwners: () => api.get('/owners?includeInactive=true'),
+  getOwners: (includeInactive) => api.get(`/owners?includeInactive=${includeInactive}`),
   createOwner: (data) => api.post('/owners', data),
   deleteOwner: (id) => api.delete(`/owners/${id}`),
   
