@@ -129,32 +129,35 @@ import flatpickr from 'flatpickr'
 import { Turkish } from "flatpickr/dist/l10n/tr.js"
 import { bookingService } from "./../services/api.js"
 import { dateToData } from "../utils/utility.js"
+import { useBookingLogic } from '@/composables/useBookingLogic.js'
 
-const props = defineProps(['roomTypes', 'pricePolicies', 'canRemove'])
+const props = defineProps(['canRemove'])
 const room = defineModel('room')
 const emit = defineEmits(['remove'])
+
+const { roomTypes, pricePolicies } = useBookingLogic();
 
 const dateInput = ref(null)
 let fpInstance = null
 const suggestedPrice = ref(0)
 
 const guestOverrides = computed(() => (room.value.overrides || []).filter(ov => {
-  if (ov.policyId) return props.pricePolicies.find(p => p.id === ov.policyId)?.scope === 'GUEST';
+  if (ov.policyId) return pricePolicies.value.find(p => p.id === ov.policyId)?.scope === 'GUEST';
   return ov._temporaryScope === 'GUEST';
 }));
 
 const nightOverrides = computed(() => (room.value.overrides || []).filter(ov => {
-  if (ov.policyId) return props.pricePolicies.find(p => p.id === ov.policyId)?.scope === 'NIGHT';
+  if (ov.policyId) return pricePolicies.value.find(p => p.id === ov.policyId)?.scope === 'NIGHT';
   return ov._temporaryScope === 'NIGHT';
 }));
 
 const stayOverrides = computed(() => (room.value.overrides || []).filter(ov => {
-  if (ov.policyId) return props.pricePolicies.find(p => p.id === ov.policyId)?.scope === 'STAY';
+  if (ov.policyId) return pricePolicies.value.find(p => p.id === ov.policyId)?.scope === 'STAY';
   return ov._temporaryScope === 'STAY';
 }));
 
 const isPriceSynced = computed(() => room.value.price > 0 && room.value.price === suggestedPrice.value);
-const getPoliciesByScope = (scope) => props.pricePolicies.filter(p => p.scope === scope);
+const getPoliciesByScope = (scope) => pricePolicies.value.filter(p => p.scope === scope);
 
 const updateGuests = (type, change) => {
   const min = type === 'adults' ? 1 : 0;
@@ -226,7 +229,7 @@ const initFlatpickr = () => {
 onMounted(() => {
   initFlatpickr();
   if (room.value.checkIn && room.value.checkOut) fpInstance.setDate([new Date(room.value.checkIn), new Date(room.value.checkOut)], false);
-  if (props.roomTypes.length > 0 && !room.value.roomTypeId) room.value.roomTypeId = props.roomTypes[0].id;
+  if (roomTypes.value.length > 0 && !room.value.roomTypeId) room.value.roomTypeId = roomTypes.value[0].id;
   fetchSuggestedPrice();
 });
 
