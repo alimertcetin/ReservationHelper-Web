@@ -45,7 +45,7 @@
 
           <section class="space-y-1.5">
             <div class="flex justify-between items-center px-1">
-              <h3 class="font-bold text-slate-500 uppercase text-[10px] tracking-widest">Room Stays</h3>
+              <h3 class="font-bold text-slate-500 uppercase text-[10px] tracking-widest">Room Stays ({{bookingForm.rooms.length}})</h3>
               <button @click="addRoom" class="text-teal-500 text-[10px] font-bold hover:underline">+ Add Another</button>
             </div>
             
