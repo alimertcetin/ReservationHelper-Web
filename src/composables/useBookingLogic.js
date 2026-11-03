@@ -40,6 +40,15 @@ catch(err) {
   useToast().showToast("Error", "Initialization failed", "error");
 }
 
+export function getData() {
+  return {
+    staffMembers,
+    roomTypes,
+    accounts,
+    pricePolicies
+  };
+}
+
 export function useBookingLogic() {
 
   const { showToast } = useToast();

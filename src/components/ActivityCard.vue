@@ -8,8 +8,18 @@
         <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm truncate group-hover:text-teal-500 transition-colors">
           {{ reservation.guest.firstName }} {{ reservation.guest.lastName }}
         </h4>
-        
+        <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1 group-hover:text-rose-500 transition-colors">
+          <span class="text-[9px] opacity-40 font-mono italic">#{{ reservation.id }}</span>
+          <span class="text-[9px] opacity-80 font-mono">{{ getStaff(reservation.staffId).name }}</span>
+        </p>
+        <!--
         <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1">
+          <span class="text-[9px] opacity-40 font-mono italic">#{{ reservation.id }}</span>
+          <span class="text-[9px] opacity-40 font-mono italic">{{ getStaff(reservation.staffId).name }}</span>
+        </p>
+        -->
+        
+        <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1 group-hover:text-rose-500 transition-colors">
           <span v-if="reservation.rooms?.length > 1" class="bg-teal-500/10 px-1 rounded text-[9px]">
             {{ reservation.rooms.length }} STAYS
           </span>
@@ -28,22 +38,42 @@
       </span>
     </div>
     
-    <div v-if="reservation.total" class="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex justify-between items-center">
-       <span class="text-[9px] opacity-40 font-mono italic">#{{ reservation.id }}</span>
+    <div v-if="reservation.totalAmount" class="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex justify-between items-center">
        <span class="text-xs font-mono font-bold text-emerald-500">
-         {{ formatCurrency(reservation.total) }}
+         {{ formatCurrency(reservation.totalAmount) }}
        </span>
+       <!--  
+       <span :class="reservation.totalAmount != {{getTotalPayments(reservation.payments)}} ? 'text-rose-500' : 'text-emerald-500'">
+         -->
+        <!--  :class="balance > 0 ? 'text-rose-500' : 'text-emerald-500'" class="text-base font-mono font-bold pt-0.5" -->
+       <span :class="getTotalPayments(reservation.payments) < reservation.totalAmount ? 'text-xs font-mono font-bold text-rose-500' : 'text-xs font-mono font-bold text-emerald-500'">
+         {{ formatCurrency(getTotalPayments(reservation.payments)) }}
+       </span>
+
     </div>
   </div>
 </template>
 
 <script setup>
+import { getData } from '@/composables/useBookingLogic'
+
 const props = defineProps(['reservation'])
 defineEmits(['select'])
+
+const { staffMembers } = getData();
 
 const formatCurrency = (val) => {
   return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(val || 0)
 }
+
+const getStaff = (staffId) => {
+  return staffMembers.value.find(p => p.id === staffId) || {};
+}
+const getTotalPayments = (payments) => {
+  if (!Array.isArray(payments) || payments.length === 0) return 0;
+  return payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+}
+
 
 const formatTime = (time) => {
   if (!time) return '';
