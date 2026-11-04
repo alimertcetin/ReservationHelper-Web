@@ -1,25 +1,23 @@
 <template>
   <div 
     @click="$emit('select', reservation)"
-    class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-teal-500/30 transition-all cursor-pointer group"
+    class="bg-white p-4 rounded-2xl border border-slate-200 shadow-md
+    hover:shadow-teal-950/50 hover:border-teal-500/60
+    dark:bg-slate-800 dark:border-slate-700 dark:hover:shadow-teal-400
+    cursor-pointer group transition-all"
   >
     <div class="flex justify-between items-start">
       <div class="flex-1 min-w-0">
-        <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm truncate group-hover:text-teal-500 transition-colors">
+        <h4 class="font-bold text-teal-600 dark:text-teal-400 text-sm truncate group-hover:text-teal-400 dark:group-hover:text-teal-200 transition-colors dark:group-hover:text-teal-200">
           {{ reservation.guest.firstName }} {{ reservation.guest.lastName }}
         </h4>
-        <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1 group-hover:text-rose-500 transition-colors">
-          <span class="text-[9px] opacity-40 font-mono italic">#{{ reservation.id }}</span>
-          <span class="text-[9px] opacity-80 font-mono">{{ getStaff(reservation.staffId).name }}</span>
+        <p class="text-[10px] text-slate-300 dark:text-slate-600 font-bold uppercase mt-1 flex items-center gap-1 group-hover:text-slate-500 transition-colors dark:group-hover:text-slate-400">
+          <!--[&_span]:opacity-50 group-hover:[&_span]:opacity-80 [&_span]:transition-opacity-->
+          <span class="text-[9px] font-mono italic">#{{ reservation.id }}</span>
+          <span class="text-[9px] font-mono">{{ getStaff(reservation.staffId).name }}</span>
         </p>
-        <!--
-        <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1">
-          <span class="text-[9px] opacity-40 font-mono italic">#{{ reservation.id }}</span>
-          <span class="text-[9px] opacity-40 font-mono italic">{{ getStaff(reservation.staffId).name }}</span>
-        </p>
-        -->
         
-        <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1 group-hover:text-rose-500 transition-colors">
+        <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase mt-1 flex items-center gap-1 group-hover:text-teal-400 dark:group-hover:text-teal-200 transition-colors">
           <span v-if="reservation.rooms?.length > 1" class="bg-teal-500/10 px-1 rounded text-[9px]">
             {{ reservation.rooms.length }} STAYS
           </span>
@@ -39,15 +37,11 @@
     </div>
     
     <div v-if="reservation.totalAmount" class="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex justify-between items-center">
-       <span class="text-xs font-mono font-bold text-emerald-500">
-         {{ formatCurrency(reservation.totalAmount) }}
-       </span>
-       <!--  
-       <span :class="reservation.totalAmount != {{getTotalPayments(reservation.payments)}} ? 'text-rose-500' : 'text-emerald-500'">
-         -->
-        <!--  :class="balance > 0 ? 'text-rose-500' : 'text-emerald-500'" class="text-base font-mono font-bold pt-0.5" -->
-       <span :class="getTotalPayments(reservation.payments) < reservation.totalAmount ? 'text-xs font-mono font-bold text-rose-500' : 'text-xs font-mono font-bold text-emerald-500'">
-         {{ formatCurrency(getTotalPayments(reservation.payments)) }}
+       <span :class="getTotalPayments(reservation.payments) < reservation.totalAmount ? 
+       'text-xs font-mono font-bold text-rose-400 group-hover:text-rose-600 dark:text-rose-500 dark:group-hover:text-rose-400 transition-colors' : 
+       'text-xs font-mono font-bold text-emerald-300 group-hover:text-emerald-500 dark:text-emerald-500 dark:group-hover:text-emerald-300 transition-colors'">
+
+         Bakiye: {{ formatCurrency(reservation.totalAmount - getTotalPayments(reservation.payments)) }}
        </span>
 
     </div>
