@@ -10,19 +10,19 @@
           <h2 class="text-xl font-bold text-teal-500">Menu</h2>
           <button @click="sidebarOpen = false" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">✕</button>
         </div>
+
         <nav class="space-y-2">
           <router-link 
             v-for="item in computedMenu" 
             :key="item.id" 
             :to="item.path"
             @click="sidebarOpen = false"
-            class="w-full flex items-center gap-3 p-3 rounded-xl transition-all block"
-            active-class="bg-teal-500 text-white shadow-lg"
-            inactive-class="hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
+            class="w-full flex items-center gap-3 p-3 rounded-xl transition-all block hover:text-white hover:bg-slate-400 dark:hover:bg-slate-800"
+            active-class="bg-teal-500 !text-white shadow-lg">
             <span>{{ item.icon }}</span> {{ item.label }}
           </router-link>
         </nav>
+
       </div>
     </aside>
 
@@ -35,7 +35,7 @@
             <h1 class="text-lg font-bold">Reservation<span class="text-teal-500">Pro</span></h1>
           </router-link>
         </div>
-        
+
         <div class="flex items-center gap-4">
           <button @click="toggleDark" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:scale-110 transition-transform">
             {{ isDark ? '☀️' : '🌙' }}
