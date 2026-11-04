@@ -28,10 +28,14 @@
 
     <nav class="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-3">
       <div class="max-w-[1600px] mx-auto flex justify-between items-center">
+        
         <div class="flex items-center gap-4">
           <button @click="sidebarOpen = true" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl">☰</button>
-          <h1 class="text-lg font-bold">Reservation<span class="text-teal-500">Pro</span></h1>
+          <router-link to="/bookings" class="hover:opacity-80 transition-opacity">
+            <h1 class="text-lg font-bold">Reservation<span class="text-teal-500">Pro</span></h1>
+          </router-link>
         </div>
+        
         <div class="flex items-center gap-4">
           <button @click="toggleDark" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:scale-110 transition-transform">
             {{ isDark ? '☀️' : '🌙' }}
