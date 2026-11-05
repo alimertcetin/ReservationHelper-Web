@@ -409,7 +409,7 @@ const saveAccount = async () => {
 
 const fetchOwners = async () => {
   try {
-    const res = await bookingService.getOwners();
+    const res = await bookingService.getOwners(true);
     owners.value = res.data;
     // Keep selection sync if updating
     if (selectedOwner.value) {
